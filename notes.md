@@ -13,3 +13,8 @@ python downloadDataset.py
 
 # YOLO config.yml file
 - prefer absolute path for path keyword 
+
+# Running training 
+[issue-gpu-1](https://github.com/ultralytics/ultralytics/issues/348)
+sol: add if __name__ == "__main__":
+[issue-gpu-2](https://github.com/ultralytics/ultralytics/issues/664)
