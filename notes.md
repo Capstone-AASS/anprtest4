@@ -11,3 +11,5 @@
 python downloadDataset.py
 ```
 
+# YOLO config.yml file
+- prefer absolute path for path keyword 
