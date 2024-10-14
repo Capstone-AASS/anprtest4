@@ -5,8 +5,8 @@ import os
 # print(PATH_LAST_MODEL)
 if __name__ == "__main__":
     # LOAD MODEL
-    model = YOLO(".\\runs\\detect\\train3\\weights\\last.pt")
+    model = YOLO(".\\runs\\detect\\train5\\weights\\last.pt")
 
 
     # TRAIN THE MODEL
-    results = model.train(epochs =15,resume = True)
+    results = model.train(epochs =500,resume = True)

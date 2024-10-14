@@ -244,7 +244,6 @@ def show_results(model1, img, char):
 
 import cv2
 import numpy as np
-import easyocr
 import re
 
 

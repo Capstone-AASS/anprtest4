@@ -11,7 +11,88 @@ import os
 # Step 1: Load the YOLO model with the best weights
 model = YOLO("best.pt")
 
-# Load your models
+# Load your modelsimport cv2
+from ultralytics import YOLO
+from utils import preprocess_for_ocr, concat_number_plate
+from NumberPlatePredictor import NumberPlatePredictor
+import easyocr
+
+
+def process_frame(frame, model, reader, numberPlatePredictor):
+    # Run inference on the frame
+    results = model(frame, verbose=False)
+    plate_detected = False
+
+    for result in results:
+        boxes = result.boxes.xyxy.cpu().numpy()
+        confidences = result.boxes.conf.cpu().numpy()
+        class_ids = result.boxes.cls.cpu().numpy()
+
+        for box, confidence, class_id in zip(boxes, confidences, class_ids):
+            x1, y1, x2, y2 = map(int, box)
+            label = f"{model.names[int(class_id)]} {confidence:.2f}"
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(
+                frame,
+                label,
+                (x1, y1 - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 255, 0),
+                2,
+            )
+
+            roi = frame[y1:y2, x1:x2]
+            preprocessed_img = preprocess_for_ocr(roi)
+            if preprocessed_img is not None:
+                plate_detected = True
+                numberplate = concat_number_plate(reader.readtext(preprocessed_img))
+                numberPlatePredictor.update_stream(numberplate)
+                print("Number Plate: ", numberPlatePredictor.get_most_likely_plate())
+
+            cv2.imshow("Number Plate", roi)
+
+    return plate_detected
+
+
+def main():
+    model = YOLO("best.pt")
+    reader = easyocr.Reader(["en"])
+    numberPlatePredictor = NumberPlatePredictor()
+    cap = cv2.VideoCapture(0)  # Default webcam
+
+    no_plate_counter = 0
+    print("Camera on")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Failed to capture video frame")
+            break
+
+        plate_detected = process_frame(frame, model, reader, numberPlatePredictor)
+
+        if plate_detected:
+            no_plate_counter = 0
+        else:
+            no_plate_counter += 1
+
+        if no_plate_counter >= 50:
+            numberPlatePredictor = NumberPlatePredictor()  # Reset predictor
+            no_plate_counter = 0
+            print("Number Plate Detector reset due to inactivity.")
+
+        cv2.imshow("YOLO Webcam", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
+
 reader = easyocr.Reader(["en"])
 numberPlatePredictor = NumberPlatePredictor()
 
@@ -21,7 +102,7 @@ cap = cv2.VideoCapture(0)  # 0 is the default camera
 # cap = cv2.VideoCapture("http://192.168.29.40/cam-hi.jpg")
 # Initialize a counter to track frames without detected number plates
 no_plate_counter = 0
-print('cam on')
+print("cam on")
 
 
 while True:
@@ -64,6 +145,8 @@ while True:
                 plate_detected = True
                 numberplate = concat_number_plate(reader.readtext(preprocessed_img))
                 numberPlatePredictor.update_stream(numberplate)
+                _, seg = segment_characters_2(roi)
+                cv2.imshow("Number Plate segments Outlined", seg)
                 print("Number Plate: ", numberPlatePredictor.get_most_likely_plate())
 
             cv2.imshow("Number Plate", roi)
