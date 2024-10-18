@@ -1,0 +1,10 @@
+/* src/components/TrafficStatsGraph.css */
+.traffic-stats-graph {
+    margin-top: 20px;
+  }
+  
+  .traffic-stats-graph h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  

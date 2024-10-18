@@ -1,36 +1,22 @@
+// src/components/Header.js
 import React from 'react';
-import PropTypes from 'prop-types'
+import './Header.css';
+import thaparLogo from './assets/thapar_logo.png'; // Adjust the path if necessary
 
-export default function Header(props) {
+const Header = () => {
   return (
-    <div>
-      <nav className="navbar navbar-expand-lg bg-body-tertiary">
-        <div className="container-fluid">
-          <a className="navbar-brand" href="#">{props.title}</a>
-          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse" id="navbarNavDropdown">
-            <ul className="navbar-nav">
-              <li className="nav-item">
-                <a className="nav-link active" aria-current="page" href="#">Home</a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#">Features</a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#">Pricing</a>
-              </li>
-             {props.Extras? <li className="nav-item">
-                <a className="nav-link" href="#">Extras</a>
-              </li>: " "}
-            </ul>
-          </div>
-        </div>
-      </nav>
-    </div>
+    <header className="header">
+      <div className="logo-container">
+        <img src={thaparLogo} alt="TIET Logo" className="logo-image" />
+        <span className="logo-text">TIET Vehicle Surveillance Dashboard</span>
+      </div>
+      <div className="current-datetime">{new Date().toLocaleString()}</div>
+      <div className="admin-profile">
+        {/* <button className="settings-button">Settings</button> */}
+        <button className="logout-button">Logout</button>
+      </div>
+    </header>
   );
-}
-Header.propTypes={
-    title: PropTypes.string
-}
+};
+
+export default Header;
