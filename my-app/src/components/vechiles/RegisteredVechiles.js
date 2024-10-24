@@ -45,16 +45,16 @@ const RegisteredVehicles = () => {
       {showForm && (
         <form onSubmit={handleFormSubmit}>
           <Grid2 container spacing={2} sx={{ my: 2 }}>
-            <Grid2 xs={12} sm={6}>
+            <Grid2 size={{xs:12,sm:6}}>
               <TextField label="Vehicle Number" name="number" value={newVehicle.number} onChange={handleInputChange} required fullWidth />
             </Grid2>
-            <Grid2 xs={12} sm={6}>
+            <Grid2 size={{xs:12,sm:6}} >
               <TextField label="Owner" name="owner" value={newVehicle.owner} onChange={handleInputChange} required fullWidth />
             </Grid2>
-            <Grid2 xs={12} sm={6}>
+            <Grid2 size={{xs:12,sm:6}} >
               <TextField label="Model" name="model" value={newVehicle.model} onChange={handleInputChange} required fullWidth />
             </Grid2>
-            <Grid2 xs={12} sm={6}>
+            <Grid2 size={{xs:12,sm:6}} >
               <TextField label="Year" name="year" value={newVehicle.year} onChange={handleInputChange} required type="number" fullWidth />
             </Grid2>
           </Grid2>

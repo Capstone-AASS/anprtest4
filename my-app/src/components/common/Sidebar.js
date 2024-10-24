@@ -5,6 +5,8 @@ import { Home, LiveTv, Notifications, DirectionsCar, BarChart, Report, Settings 
 import './Sidebar.css';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import {Link as RouterLink} from 'react-router-dom';
+import { Link } from '@mui/material';
 
 const Sidebar = ({ isSidebarOpen, toggleSidebar,activeSection }) => {
   const theme = useTheme();
@@ -15,13 +17,13 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar,activeSection }) => {
   };
 
   const menuItems = [
-    { text: 'Home', section: 'dashboard', icon: <Home /> },
-    { text: 'Live Feeds', section: 'liveFeeds', icon: <LiveTv /> },
-    { text: 'Alerts', section: 'alerts', icon: <Notifications /> },
-    { text: 'Registered Vehicles', section: 'registeredVehicles', icon: <DirectionsCar /> },
-    { text: 'Traffic Stats', section: 'trafficStats', icon: <BarChart /> },
-    { text: 'Overspeeding Reports', section: 'overspeedingReports', icon: <Report /> },
-    { text: 'Settings', section: 'settings', icon: <Settings /> },
+    { text: 'Home', section: 'dashboard', icon: <Home /> ,link:'/'},
+    { text: 'Live Feeds', section: 'liveFeeds', icon: <LiveTv /> ,link:'/liveFeeds'},
+    { text: 'Alerts', section: 'alerts', icon: <Notifications />, link:'/alerts' },
+    { text: 'Registered Vehicles', section: 'registeredVehicles', icon: <DirectionsCar /> ,link:'/registeredVehicles'},
+    { text: 'Traffic Stats', section: 'trafficStats', icon: <BarChart /> , link:'/trafficStats'},
+    { text: 'Overspeeding Reports', section: 'overspeedingReports', icon: <Report /> , link:'/overspeedingReports'},
+    { text: 'Settings', section: 'settings', icon: <Settings />, link:'/settings' },
   ];
 
   return (
@@ -40,6 +42,12 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar,activeSection }) => {
     >
       <List>
         {menuItems.map((item) => (
+          <Link
+          component={RouterLink}
+          to={item.link}
+          key={item.text}
+          sx={{ textDecoration: 'none', color: 'inherit' }} // Remove underline and blue color
+        >
           <ListItem
             button
             key={item.text}
@@ -49,6 +57,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar,activeSection }) => {
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />
           </ListItem>
+          </Link>
         ))}
       </List>
     </Drawer>

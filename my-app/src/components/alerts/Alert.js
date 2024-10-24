@@ -1,26 +1,27 @@
-// src/components/Alerts.js
-import React from 'react';
-import Alert from './Alert';
-import { Grid2,Container } from '@mui/material';
+import React from "react";
+import { Card, CardContent, Typography, Box } from "@mui/material";
 
-const alerts = [
-  { vehicleNumber: 'AB123CD', speed: 80, location: 'Area 1', timestamp: '2024-08-23 10:00' },
-  { vehicleNumber: 'EF456GH', speed: 95, location: 'Area 2', timestamp: '2024-08-23 10:05' },
-  // Add more alerts as needed
-];
-
-const Alerts = () => {
+const Alert = ({ vehicleNumber, speed, location, timestamp }) => {
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Grid2 container spacing={2}>
-        {alerts.map((alert, index) => (
-          <Grid2 key={index} xs={12}>
-            <Alert {...alert} />
-          </Grid2>
-        ))}
-      </Grid2>
-    </Container>
+    <Card sx={{ borderRadius: '12px', boxShadow: 3 }}>
+      <CardContent>
+        <Box display="flex" flexDirection="column" gap={1}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Vehicle: {vehicleNumber}
+          </Typography>
+          <Typography variant="body1" color="error">
+            Speed: {speed} km/h
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Location: {location}
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Time: {timestamp}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 
-export default Alerts;
+export default Alert;

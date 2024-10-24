@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import './MainSection.css';
 import TrafficStatsGraph from './TrafficStatsGraph';
 import OverspeedingReports from './OverspeedingReports';
-import thaparLogo from '../../public/assets/thapar_log.jpg';
 
 const LiveFeed = ({ location, isOverspeeding }) => {
   return (
@@ -148,7 +147,7 @@ const Dashboard = () => {
             alerts for overspeeding, registered vehicles, traffic statistics, and more.
           </p>
         </div>
-        <img src={thaparLogo} alt="Thapar University" className="thaparLogo" />
+        <img src="/assets/thapar_logo.png" alt="Thapar University" className="thaparLogo" />
       </div>
     </div>
   );

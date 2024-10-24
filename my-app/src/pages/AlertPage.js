@@ -3,9 +3,9 @@ import Header from '../components/common/Header';
 import Sidebar from '../components/common/Sidebar';
 import Footer from '../components/common/Footer';
 import { Box } from '@mui/material';
-import Dashboard from '../components/dashboard/Dashboard';
+import Alerts from '../components/alerts/Alerts';
 
-function HomePage() {
+function AlertPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -20,11 +20,11 @@ function HomePage() {
         <Box display={isSidebarOpen?'block':'none'}>
         <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} activeSection='dashboard' />
         </Box>
-        <Dashboard />
+        <Alerts />
       </Box>
       <Footer />
     </div>
   );
 }
 
-export default HomePage
+export default AlertPage
