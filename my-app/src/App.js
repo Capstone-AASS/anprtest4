@@ -1,24 +1,41 @@
 // src/App.js
 import React, { useState } from 'react';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import MainSection from './components/MainSection';
-import Footer from './components/Footer';
 import './App.css';
+import {
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
+import HomePage from './pages/HomePage';
+import LiveFeedsPage from './pages/LiveFeedsPage';
+import RegisteredVehiclesPage from './pages/RegisteredVechilesPage';
+import AlertPage from './pages/AlertPage';
 
-function App() {
-  const [activeSection, setActiveSection] = useState('dashboard');
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <HomePage />,
+  },
+  {
+    path: "/livefeeds",
+    element: <LiveFeedsPage/>,
+  },
+  {
+    path: '/registeredVehicles',
+    element: <RegisteredVehiclesPage />,
+  },
+  {
+    path: '/alerts',
+    element: <AlertPage />,
+  },
+]);
 
+
+const App = () => {
   return (
     <div className="app">
-      <Header />
-      <div className="app-body">
-        <Sidebar setActiveSection={setActiveSection} />
-        <MainSection activeSection={activeSection} />
-      </div>
-      <Footer />
+      <RouterProvider router={router} />
     </div>
   );
-}
+};
 
 export default App;
