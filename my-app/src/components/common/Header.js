@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import Button from '@mui/material/Button';
-import thaparLogo from './assets/thapar_logo.png'; // Adjust the path if necessary
+import thaparLogo from '../../public/assets/thapar_logo'; // Adjust the path if necessary
 import Box from '@mui/material/Box';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';

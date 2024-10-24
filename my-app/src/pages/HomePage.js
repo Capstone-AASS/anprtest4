@@ -1,26 +1,12 @@
-// src/App.js
 import React, { useState } from 'react';
-import Header from './components/common/Header';
-import Sidebar from './components/common/Sidebar';
-import MainSection from './components/MainSection';
-import Footer from './components/common/Footer';
-import './App.css';
+import Header from '../components/common/Header';
+import Sidebar from '../components/common/Sidebar';
+import Footer from '../components/common/Footer';
 import { Box } from '@mui/material';
-import {
-  createBrowserRouter,
-  RouterProvider,
-} from "react-router-dom";
+import Dashboard from '../components/dashboard/Dashboard';
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <div>Hello world!</div>,
-  },
-]);
-
-
-const App = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+function HomePage() {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState('dashboard');
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -35,11 +21,11 @@ const App = () => {
         <Box display={isSidebarOpen?'block':'none'}>
         <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} setActiveSection={setActiveSection} activeSection={activeSection} />
         </Box>
-        <MainSection activeSection={activeSection} />
+        <Dashboard />
       </Box>
       <Footer />
     </div>
   );
-};
+}
 
-export default App;
+export default HomePage

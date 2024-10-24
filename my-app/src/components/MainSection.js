@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import './MainSection.css';
 import TrafficStatsGraph from './TrafficStatsGraph';
 import OverspeedingReports from './OverspeedingReports';
-import thaparLogo from './assets/thapar_log.jpg';
+import thaparLogo from '../../public/assets/thapar_log.jpg';
 
 const LiveFeed = ({ location, isOverspeeding }) => {
   return (

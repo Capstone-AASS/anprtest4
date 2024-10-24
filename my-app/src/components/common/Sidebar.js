@@ -6,12 +6,11 @@ import './Sidebar.css';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 
-const Sidebar = ({ isSidebarOpen, toggleSidebar,setActiveSection,activeSection }) => {
+const Sidebar = ({ isSidebarOpen, toggleSidebar,activeSection }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleItemClick = (section) => {
-    setActiveSection(section);
     if (isMobile) toggleSidebar(); // Auto-close sidebar on mobile after selection
   };
 
