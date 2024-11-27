@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material';
 
-const LiveFeed = ({ location, isOverspeeding }) => {
+const LiveFeed = ({ location, isOverspeeding,publish }) => {
     return (
-      <Card sx={{ borderRadius: '12px', boxShadow: 3, overflow: 'hidden', mb: 2 }}>
+      <Card sx={{ borderRadius: '12px', boxShadow: 3, overflow: 'hidden', mb: 2 }} onClick={publish}>
         {/* Video feed */}
         <CardMedia
           component="video"
