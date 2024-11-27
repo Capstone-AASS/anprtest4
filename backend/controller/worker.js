@@ -1,12 +1,12 @@
 const mediasoup = require('mediasoup');
 const config = require('../config');
 
-const worker = [
-    {
-        worker: mediasoup.types.Worker,
-        router: mediasoup.types.Router,
-    },
-];
+// const worker = [
+//     {
+//         worker: mediasoup.types.Worker,
+//         router: mediasoup.types.Router,
+//     },
+// ];
 
 let nextMediasoupWorkerIdx = 0;
 
@@ -21,6 +21,10 @@ const createWorker = async () => {
         console.error('mediasoup worker died, exiting in 2 seconds... [pid:%d]', worker.pid);
         setTimeout(() => process.exit(1), 2000);
     });
+
+    const mediaCodecs = config.mediasoup.router.mediaCodecs;
+    const mediaSoupRouter = await worker.createRouter({ mediaCodecs });
+    return mediaSoupRouter;
 }
 
 module.exports = {createWorker };
