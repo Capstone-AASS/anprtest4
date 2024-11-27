@@ -1,5 +1,5 @@
 // src/components/LiveFeeds.js
-import React from "react";
+import React, { useState, useEffect } from "react";
 import LiveFeed from "./LiveFeed";
 import { Grid2, Container } from "@mui/material";
 import mediasoup from "mediasoup-client";
@@ -43,22 +43,25 @@ const onRouterCapabilities = (resp) => {
   //btnscreen.disabled = false;
 };
 
-const getUserMedia = async (transport,isWebcam) => {
-  if(!device.canProduce('video') ){
-    console.error('cannot produce any media');
+const getUserMedia = async (transport, isWebcam) => {
+  if (!device.canProduce("video")) {
+    console.error("cannot produce any media");
     return;
   }
   let stream;
   try {
-    stream = isWebcam? 
-    await navigator.mediaDevices.getUserMedia({video:true,audio:true}):
-    await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
+    stream = isWebcam
+      ? await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      : await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
   } catch (error) {
-    console.error('Error accessing media devices',error);
+    console.error("Error accessing media devices", error);
     return;
   }
   return stream;
-}
+};
 
 const onProducerTransportCreated = async (event) => {
   if (event.error) {
@@ -75,49 +78,52 @@ const onProducerTransportCreated = async (event) => {
     socket.send(resp);
     socket.addEventListener("message", (event) => {
       const jsonValidation = isJsonString(event.data);
-    if (!jsonValidation) {
-      console.error("Invalid JSON");
-      return;
-    }
-    let resp = JSON.parse(event.data);
-    if (resp.type === "producerConnected") {
-    console.log("got producderConnected!!!");
-      callback();
-    }
+      if (!jsonValidation) {
+        console.error("Invalid JSON");
+        return;
+      }
+      let resp = JSON.parse(event.data);
+      if (resp.type === "producerConnected") {
+        console.log("got producderConnected!!!");
+        callback();
+      }
     });
   });
   //begin transport producer
-  transport.on("produce", async ({ kind, rtpParameters }, callback, errback) => {
-    const messsage = {
-    type: 'produce',
-    transportId: transport.id,
-    kind,
-    rtpParameters
-    };
-    const resp = JSON.stringify(messsage);
-    socket.send(resp);
-    socket.addEventListener('published',(resp)=>{
-      callback(resp.data.id);
-    })
-  });
+  transport.on(
+    "produce",
+    async ({ kind, rtpParameters }, callback, errback) => {
+      const messsage = {
+        type: "produce",
+        transportId: transport.id,
+        kind,
+        rtpParameters,
+      };
+      const resp = JSON.stringify(messsage);
+      socket.send(resp);
+      socket.addEventListener("published", (resp) => {
+        callback(resp.data.id);
+      });
+    }
+  );
 
   // end transport producer
   //connection state change
-  transport.on('coonectionstatechange',(state)=>{
-    switch(state){
-      case 'connecting':
-        console.log('connecting');
+  transport.on("coonectionstatechange", (state) => {
+    switch (state) {
+      case "connecting":
+        console.log("connecting");
         //add an elemnt on the page to show the status
         break;
-      case 'connected':
-        console.log('connected');
+      case "connected":
+        console.log("connected");
         //localVideo.srcObject = stream;
         break;
-      case 'disconnected':
-        console.log('disconnected');
+      case "disconnected":
+        console.log("disconnected");
         break;
-      case 'failed':
-        console.log('failed');
+      case "failed":
+        console.log("failed");
         transport.close();
         //tell ui failed
         break;
@@ -129,7 +135,7 @@ const onProducerTransportCreated = async (event) => {
 
   let stream;
   try {
-    stream = await getUserMedia(transport,isWebcam);
+    stream = await getUserMedia(transport, isWebcam);
     const track = stream.getVideoTracks()[0];
     const params = { track };
 
@@ -138,7 +144,6 @@ const onProducerTransportCreated = async (event) => {
     console.error("Error creating producer:", error);
     //tell ui failed
   }
-
 };
 
 const publish = (e) => {
@@ -151,6 +156,104 @@ const publish = (e) => {
   socket.send(resp);
 };
 
+const onSubTransportCreated = (event) => {
+  if (event.error) {
+    console.error("Error creating sub transport:", event.error);
+    return;
+  }
+  const transport = device.createRecvTransport(event.data);
+  transport.on("connect", async ({ dtlsParameters }, callback, errback) => {
+    const message = {
+      type: "connectConsumerTransport",
+      transportId: transport.id,
+      dtlsParameters,
+    };
+    const msg = JSON.stringify(message);
+    socket.send(msg);
+    socket.addEventListener("message", (event) => {
+      const jsonValidation = isJsonString(event.data);
+      if (!jsonValidation) {
+        console.error("Invalid JSON");
+        return;
+      }
+      let resp = JSON.parse(event.data);
+      if (resp.type === "subConnected") {
+        console.log("consumer transport Connected!!!");
+        callback();
+      }
+    });
+  });
+  transport.on("connectionstatechange", async (state) => {
+    switch (state) {
+      case "connecting":
+        console.log("subscribing");
+        // do it in ui
+        break;
+      case "connected":
+        //remoteVideo.srcObject = remoteStream;
+        const msg = { type: "resume" };
+        const message = JSON.stringify(msg);
+        socket.send(message);
+        console.log("subscribbed");
+        break;
+      case "disconnected":
+        console.log("disconnected");
+        break;
+      case "failed":
+        console.log("failed");
+        //show in ui
+        transport.close();
+        //btnSub.disbled = false;
+        break;
+      case 'resumed':
+        console.log(event.data);
+        break;
+      default:
+        break;
+    }
+  });
+  const stream = consumer(transport);
+};
+
+const consumer = async (transport) => {
+  const {rtpCapabilities} = device;
+  const msg = {
+    type:'consume',
+    rtpCapabilities
+  }
+  const message = JSON.stringify(msg);
+  socket.send(message);
+}
+
+const subscibe = () => {
+  //btnSub.disable = true;
+  const msg = {
+    type: "createConsumerTransport",
+    forceTcp: false,
+  };
+  const message = JSON.stringify(msg);
+  socket.send(message);
+};
+
+const onSubscribed = async (event) => {
+  const {producerId,
+    id,
+    kind,
+    rtpParameters,
+  } = event.data;
+  let codecOption = {};
+  const consumer = await consumerTransport.consume({
+    id,
+    producerId,
+    rtpParameters,
+    kind,
+    codecOption,
+  });
+  const stream = new MediaStream();
+  stream.addTrack(consumer.track);
+  //remoteStream = stream;
+}
+
 const connect = (webSocketUrl) => {
   socket = new WebSocket(webSocketUrl);
   socket.onopen = () => {
@@ -160,6 +263,12 @@ const connect = (webSocketUrl) => {
     };
     const resp = JSON.stringify(msg);
     socket.send(resp);
+
+    // Request feeds
+    const feedMsg = {
+      type: "getFeeds",
+    };
+    socket.send(JSON.stringify(feedMsg));
   };
   socket.onmessage = (event) => {
     const jsonValidation = isJsonString(event.data);
@@ -176,6 +285,18 @@ const connect = (webSocketUrl) => {
       case "producerTransportCreated":
         onProducerTransportCreated(resp);
         break;
+      case "feeds":
+        setFeeds(resp.data);
+        break;
+      case "subTransportCreated":
+        onSubTransportCreated(resp);
+        break;
+      case "resumed":
+        console.log(resp);
+        break;
+      case 'subscribed':
+        onSubscribed(resp);
+        break;
       default:
         console.error("Invalid message");
         break;
@@ -183,9 +304,19 @@ const connect = (webSocketUrl) => {
   };
 };
 
-connect();
-
 const LiveFeeds = () => {
+  const [feeds, setFeeds] = useState([]);
+
+  useEffect(() => {
+    connect("ws://localhost:3000/ws");
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Grid2 container spacing={2}>
@@ -195,6 +326,7 @@ const LiveFeeds = () => {
               location={feed.location}
               isOverspeeding={feed.isOverspeeding}
               publish={publish}
+              videoSrc={feed.videoSrc}
             />
           </Grid2>
         ))}

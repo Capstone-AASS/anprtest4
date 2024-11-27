@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material';
 
-const LiveFeed = ({ location, isOverspeeding,publish }) => {
+const LiveFeed = ({ location, isOverspeeding, publish, videoSrc }) => {
     return (
       <Card sx={{ borderRadius: '12px', boxShadow: 3, overflow: 'hidden', mb: 2 }} onClick={publish}>
         {/* Video feed */}
@@ -9,7 +9,7 @@ const LiveFeed = ({ location, isOverspeeding,publish }) => {
           component="video"
           controls
           sx={{ height: 200, objectFit: 'cover' }}
-          src="your-video-source.mp4"
+          src={videoSrc}
           title="Live Feed Video"
         />
   
