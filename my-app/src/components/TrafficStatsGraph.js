@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, Title } from 'chart.js';
+import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale, Title } from 'chart.js';
 import './TrafficStatsGraph.css'; // Create a CSS file for styling
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, Title);
+// Register the required elements with Chart.js
+ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title);
 
 const TrafficStatsGraph = () => {
+  const chartRef = useRef(null);
+
   const data = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
     datasets: [
@@ -22,16 +25,11 @@ const TrafficStatsGraph = () => {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'top'
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            return `${context.dataset.label}: ${context.raw}`;
-          }
-        }
+      title: {
+        display: true,
+        text: 'Traffic Volume Over Time'
       }
     },
     scales: {
@@ -50,10 +48,19 @@ const TrafficStatsGraph = () => {
     }
   };
 
+  useEffect(() => {
+    const chartInstance = chartRef.current;
+
+    return () => {
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+    };
+  }, []);
+
   return (
-    <div className="traffic-stats-graph">
-      <h2>Traffic Volume Over Time</h2>
-      <Line data={data} options={options} />
+    <div className="traffic-stats-graph-container">
+      <Line ref={chartRef} data={data} options={options} />
     </div>
   );
 };

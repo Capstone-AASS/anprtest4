@@ -4,9 +4,9 @@ const config = {
     listenIp: '0.0.0.0',
     listenPort: 3016,
 
-    mediasoup:{
+    mediasoup: {
         numWorkers: Object.keys(os.cpus()).length,
-        worker : {
+        worker: {
             rtcMinPort: 10000,
             rtcMaxPort: 10100,
             loglevel: 'debug',
@@ -19,8 +19,8 @@ const config = {
                 'rtcp',
             ],
         },
-        router:{
-            mediaCodecs:[
+        router: {
+            mediaCodecs: [
                 {
                     kind: 'audio',
                     mimeType: 'audio/opus',
@@ -37,18 +37,20 @@ const config = {
                 },
             ],
         },
-        //webrtc transport settings
+        // WebRTC transport settings
         webRtcTransport: {
             listenIps: [
                 {
                     ip: '0.0.0.0',
-                    announcedIp: '127.0.0.1', // replace by public ip address
+                    announcedIp: '127.0.0.1', // replace with public IP address if needed
                 },
             ],
             maxIncomingBitrate: 1500000,
             initialAvailableOutgoingBitrate: 1000000,
-        },  
-    }
-}
+        },
+    },
+};
+
+console.log('Configuration loaded:', JSON.stringify(config, null, 2));
 
 module.exports = config;

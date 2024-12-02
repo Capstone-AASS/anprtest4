@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
-import LiveFeeds from '../components/feed/LiveFeeds';
+import Header from '../components/common/Header';
 import { Box } from '@mui/material';
 import Sidebar from '../components/common/Sidebar';
-import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
-// import LiveFeeds from '../components/feed/Feed2';
+import TrafficStatsGraph from '../components/TrafficStatsGraph';
 
-function LiveFeedsPage() {
+function TrafficStatsPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const toggleSidebar = () => {
       setIsSidebarOpen(!isSidebarOpen);
@@ -21,7 +20,7 @@ function LiveFeedsPage() {
           <Box display={isSidebarOpen?'block':'none'}>
           <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} activeSection='livefeeds' />
           </Box>
-          <LiveFeeds />
+          <TrafficStatsGraph />
           {/* <LiveFeeds /> */}
         </Box>
         <Footer />
@@ -29,4 +28,4 @@ function LiveFeedsPage() {
     );
 }
 
-export default LiveFeedsPage
+export default TrafficStatsPage

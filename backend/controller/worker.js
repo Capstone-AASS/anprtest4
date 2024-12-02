@@ -1,30 +1,37 @@
+// worker.js
 const mediasoup = require('mediasoup');
 const config = require('../config');
 
-// const worker = [
-//     {
-//         worker: mediasoup.types.Worker,
-//         router: mediasoup.types.Router,
-//     },
-// ];
-
-let nextMediasoupWorkerIdx = 0;
+let workerInstance = null;
 
 const createWorker = async () => {
-    const worker = await mediasoup.createWorker({
-        logLevel: config.mediasoup.worker.loglevel,
-        logTags: config.mediasoup.worker.logtags,
-        rtcMinPort: config.mediasoup.worker.rtcMinPort,
-        rtcMaxPort: config.mediasoup.worker.rtcMaxPort,
-    });
-    worker.on('died', () => {
-        console.error('mediasoup worker died, exiting in 2 seconds... [pid:%d]', worker.pid);
-        setTimeout(() => process.exit(1), 2000);
-    });
+    if (workerInstance) {
+        console.log('Mediasoup worker already created with PID:', workerInstance.pid);
+        console.trace('createWorker called from:');
+        return workerInstance;
+    }
+    try {
+        console.trace('createWorker is being called from:');
+        console.log('Creating Mediasoup worker...');
+        const worker = await mediasoup.createWorker({
+            logLevel: config.mediasoup.worker.loglevel,
+            logTags: config.mediasoup.worker.logtags,
+            rtcMinPort: config.mediasoup.worker.rtcMinPort,
+            rtcMaxPort: config.mediasoup.worker.rtcMaxPort,
+        });
+        console.log(`Mediasoup worker created with PID: ${worker.pid}`);
 
-    const mediaCodecs = config.mediasoup.router.mediaCodecs;
-    const mediaSoupRouter = await worker.createRouter({ mediaCodecs });
-    return mediaSoupRouter;
-}
+        worker.on('died', () => {
+            console.error(`Mediasoup worker died, exiting in 2 seconds... [pid:${worker.pid}]`);
+            setTimeout(() => process.exit(1), 2000);
+        });
 
-module.exports = {createWorker };
+        workerInstance = worker;
+        return worker;
+    } catch (error) {
+        console.error('Error creating Mediasoup worker:', error);
+        throw error;
+    }
+};
+
+module.exports = { createWorker };

@@ -1,6 +1,7 @@
+// ws.js
 const WebSocket = require('ws');
 const { createWorker } = require('./worker');
-const { createWebrtcTransport } = require('./createWebRtcTransport');
+const { createWebRtcTransport } = require('./createWebRtcTransport');
 
 let mediaSoupRouter;
 let producerTransport;
@@ -8,94 +9,128 @@ let producer;
 let consumerTransport;
 let consumer;
 
-const isJsonString = (str)=>{
+const isJsonString = (str) => {
     try {
         JSON.parse(str);
     } catch (error) {
         return false;
     }
     return true;
-}
+};
 
 const handleGetRouterRtpCapabilities = async (ws, event) => {
-   sendResponse(ws, 'routerRtpCapabilities', mediaSoupRouter.rtpCapabilities);
-}
+    sendResponse(ws, 'routerRtpCapabilities', mediaSoupRouter.rtpCapabilities);
+};
 
-const onCreateProducerTransport = async (ws, event) => {
+const onCreateProducerTransport = async (ws, event, websocket) => {
     try {
-        const {transport, params } = await createWebrtcTransport(mediaSoupRouter);
+        const { transport, params } = await createWebRtcTransport(mediaSoupRouter);
         producerTransport = transport;
         sendResponse(ws, 'producerTransportCreated', params);
 
     } catch (error) {
         console.error('Error creating producer transport:', error);
-        sendResponse(ws,"errror",error);
+        sendResponse(ws, "error", { message: error.message });
     }
-}
+};
 
 const onConnectProducerTransport = async (ws, event) => {
-    await producerTransport.connect({ dtlsParameters: event.dtlsParameters });
-    send(ws,'producerConnected','producer connected');
-}
-
-const onProduce = async (event,ws,websocket) => {
-    const {kind, rtpParameters} = event;
-    producer = await producerTransport.produce({ kind, rtpParameters });
-    sendResponse(ws,'producerCreated',{id:producer.id});
-    broadcast(websocket,'newProducer','new user');
-}
-
-const onCreateConsumerTransport = async (event,ws) => {
-    try{
-        const {transport, params} = await createWebrtcTransport(mediaSoupRouter);
-        consumerTransport  = transport
-        sendResponse(ws,'subTransportCreated',params);
+    try {
+        await producerTransport.connect({ dtlsParameters: event.dtlsParameters });
+        sendResponse(ws, 'producerConnected', 'producer connected');
+    } catch (error) {
+        console.error('Error connecting producer transport:', error);
+        sendResponse(ws, "error", { message: error.message });
     }
-    catch(error){
-        console.error('Error creating consumer transport:',error);
-        sendResponse(ws,'error',error);
-    }
-}
+};
 
-const onConnectConsumerTransport = async (event,ws) => {
-    await consumerTransport.connect({dtlsParameters: event.dtlsParameters});
-    sendResponse(ws,'subTransportConnected','consumer transport connected');
-}
+const onProduce = async (event, ws, websocket) => {
+    try {
+        const { kind, rtpParameters } = event;
+        producer = await producerTransport.produce({ kind, rtpParameters });
+        sendResponse(ws, 'producerCreated', { id: producer.id });
+        broadcast(websocket, 'newProducer', `New producer: ${producer.id}`);
+    } catch (error) {
+        console.error('Error producing:', error);
+        sendResponse(ws, "error", { message: error.message });
+    }
+};
+
+const onCreateConsumerTransport = async (event, ws, websocket) => {
+    try {
+        const { transport, params } = await createWebRtcTransport(mediaSoupRouter);
+        consumerTransport = transport;
+        sendResponse(ws, 'consumerTransportCreated', params);
+    }
+    catch (error) {
+        console.error('Error creating consumer transport:', error);
+        sendResponse(ws, 'error', { message: error.message });
+    }
+};
+
+const onConnectConsumerTransport = async (event, ws) => {
+    try {
+        await consumerTransport.connect({ dtlsParameters: event.dtlsParameters });
+        sendResponse(ws, 'consumerTransportConnected', 'consumer transport connected');
+    } catch (error) {
+        console.error('Error connecting consumer transport:', error);
+        sendResponse(ws, "error", { message: error.message });
+    }
+};
 
 const sendResponse = (ws, type, data) => {
     ws.send(JSON.stringify({
         type,
         data,
     }));
-}
+};
 
-const broadcast =(ws, type, msg) => {
-    const message={
-        type,
-        dtata: msg
+const broadcast = (websocketServer, type, msg) => {
+    if (!websocketServer || !websocketServer.clients) {
+        console.error('WebSocket server is not defined or has no clients');
+        return;
     }
+    
+    const message = {
+        type,
+        data: msg
+    };
     const resp = JSON.stringify(message);
-    ws.clients.forEach((client)=>{
-        client.send(resp);
-    })
-}
+    websocketServer.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(resp);
+        }
+    });
+};
 
 const onResume = async (ws) => {
-    await consumer.resume();
-    sendResponse(ws,'resumed','resumed');
-}
+    try {
+        await consumer.resume();
+        sendResponse(ws, 'resumed', 'resumed');
+    } catch (error) {
+        console.error('Error resuming consumer:', error);
+        sendResponse(ws, 'error', { message: error.message });
+    }
+};
 
-const onConsume = async (event,ws) => {
-    const res = await createConsumer(producer,event.rtpCapabilities);
-    sendResponse(ws,'subscribed',res);
-}
+const onConsume = async (event, ws) => {
+    try {
+        const res = await createConsumer(producer, event.rtpCapabilities);
+        if (res) {
+            sendResponse(ws, 'subscribed', res);
+        }
+    } catch (error) {
+        console.error('Error consuming:', error);
+        sendResponse(ws, 'error', { message: error.message });
+    }
+};
 
-const createConsumer = async (producer,rtpCapabilities)=>{
+const createConsumer = async (producer, rtpCapabilities) => {
     if (!mediaSoupRouter.canConsume({
         producerId: producer.id,
         rtpCapabilities,
     })) {
-        console.error('Can not consume');
+        console.error('Cannot consume');
         return;
     }
 
@@ -106,7 +141,7 @@ const createConsumer = async (producer,rtpCapabilities)=>{
             paused: producer.kind === 'video',
         });
     } catch (error) {
-        console.error('consume failed! ', error);
+        console.error('Consume failed!', error);
         return;
     }
     return {
@@ -116,29 +151,32 @@ const createConsumer = async (producer,rtpCapabilities)=>{
         rtpParameters: consumer.rtpParameters,
         type: consumer.type,
         producerPaused: consumer.producerPaused,
-    }
-}
+    };
+};
 
 const feeds = [
-  { location: "Location 1", isOverspeeding: false, videoSrc: "video1.mp4" },
-  { location: "Location 2", isOverspeeding: true, videoSrc: "video2.mp4" },
-  // Add more feeds as needed
+    { location: "Location 1", isOverspeeding: false, videoSrc: "video1.mp4" },
+    { location: "Location 2", isOverspeeding: true, videoSrc: "video2.mp4" },
+    // Add more feeds as needed
 ];
 
 const WebSocketConnection = async (websocket) => {
     try {
         mediaSoupRouter = await createWorker();
     } catch (error) {
-        throw error;
+        console.error('Failed to create mediasoup router:', error);
+        process.exit(1);
     }
 
     websocket.on('connection', (ws) => {
-        ws.on('message', (message) => {
-            const jsonValidation = isJsonString(message);
-            if (!jsonValidation) {
+        console.log('Client connected');
+
+        ws.on('message', async (message) => {
+            if (!isJsonString(message)) {
                 console.error('Invalid JSON');
                 return;
             }
+
             const event = JSON.parse(message);
             switch (event.type) {
                 case 'getFeeds':
@@ -148,29 +186,39 @@ const WebSocketConnection = async (websocket) => {
                     handleGetRouterRtpCapabilities(ws, event);
                     break;
                 case 'createProducerTransport':
-                    onCreateProducerTransport(ws, event);
+                    onCreateProducerTransport(ws, event, websocket); // Pass 'websocket'
                     break;
                 case 'connectProducerTransport':
                     onConnectProducerTransport(ws, event);
                     break;
                 case 'produce':
-                    onProduce(event,ws);
+                    onProduce(event, ws, websocket); // Pass 'websocket'
                     break;
                 case 'createConsumerTransport':
-                    onCreateConsumerTransport(event,ws);
+                    onCreateConsumerTransport(event, ws, websocket); // Pass 'websocket'
                     break;
                 case 'connectConsumerTransport':
-                    onConnectConsumerTransport(event,ws);
+                    onConnectConsumerTransport(event, ws);
                     break;
                 case 'resume':
                     onResume(ws);
+                    break;
                 case 'consume':
-                    onConsume(event,ws);
+                    onConsume(event, ws);
+                    break;
+                case 'videoFrame':
+                    broadcast(websocket, 'videoFrame', event.data);
                     break;
                 default:
-                    console.error('Invalid message');
+                    console.error('Invalid message type:', event.type);
+                    sendResponse(ws, 'error', { message: 'Invalid message type' });
                     break;
             }
+        });
+
+        ws.on('close', () => {
+            console.log('Client disconnected');
+            // Clean up transports and other resources if necessary
         });
     });
 }

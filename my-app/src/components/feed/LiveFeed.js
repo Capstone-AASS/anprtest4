@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardMedia, Typography, Box } from '@mui/material';
 
 const LiveFeed = ({ location, isOverspeeding, publish, videoSrc }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (videoRef.current && videoSrc) {
+      videoRef.current.srcObject = videoSrc;
+    }
+  }, [videoSrc]);
     return (
       <Card sx={{ borderRadius: '12px', boxShadow: 3, overflow: 'hidden', mb: 2 }} onClick={publish}>
         {/* Video feed */}
@@ -9,7 +16,7 @@ const LiveFeed = ({ location, isOverspeeding, publish, videoSrc }) => {
           component="video"
           controls
           sx={{ height: 200, objectFit: 'cover' }}
-          src={videoSrc}
+          ref={videoRef}
           title="Live Feed Video"
         />
   
