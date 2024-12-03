@@ -62,7 +62,7 @@ const RegisteredVehicles = () => {
         </form>
       )}
 
-      <Button variant="contained" onClick={() => setShowForm(!showForm)}>
+      <Button variant="contained" onClick={() => setShowForm(!showForm)} sx={{ mt: 2,mb:2 }}>
         {showForm ? 'Cancel' : 'Register New Vehicle'}
       </Button>
     </Container>

@@ -1,0 +1,25 @@
+digraph "Stock Price Prediction Architecture" {
+	graph [fontcolor="#2D3436" fontname="Sans-Serif" fontsize=15 label="Stock Price Prediction Architecture" nodesep=0.60 pad=2.0 rankdir=LR ranksep=0.75 splines=ortho]
+	node [fixedsize=true fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13 height=1.4 imagescale=true labelloc=b shape=box style=rounded width=1.4]
+	edge [color="#7B8894"]
+	"8ce8ca808de148eab8a53c82ead06594" [label="Stock Data" height=1.9 image="./icons/dataset.png" shape=none]
+	subgraph cluster_Preprocessing {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label=Preprocessing labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		e2f26cf1d28941efa84ce63fe9890041 [label="Handle Missing Values" height=1.9 image="C:\Python311\Lib\site-packages\resources/programming/language\python.png" shape=none]
+		cc9270152d7943d9b46bd4fbed61d261 [label="Min-Max Scaling" height=1.9 image="C:\Python311\Lib\site-packages\resources/programming/language\python.png" shape=none]
+		"379c52daba3741f7aebdb5fbee1344d2" [label="Feature Engineering" height=1.9 image="C:\Python311\Lib\site-packages\resources/programming/language\python.png" shape=none]
+	}
+	subgraph "cluster_Model Training" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Model Training" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		a73d29bdc47c45c09281fe6c45ae21fb [label="LSTM Model" height=1.9 image="C:\Python311\Lib\site-packages\resources/programming/language\python.png" shape=none]
+		"8cb47a5b666842a6907a9ae9dc435896" [label="Transformer Model" height=1.9 image="C:\Python311\Lib\site-packages\resources/programming/language\python.png" shape=none]
+	}
+	subgraph "cluster_Ensemble Learning" {
+		graph [bgcolor="#E5F5FD" fontname="Sans-Serif" fontsize=12 label="Ensemble Learning" labeljust=l pencolor="#AEB6BE" rankdir=LR shape=box style=rounded]
+		e0e931fe66094c8dab2bce815b83a810 [label="Ensemble (LSTM + Transformer)" height=1.9 image="C:\Python311\Lib\site-packages\resources/programming/language\python.png" shape=none]
+	}
+	"6a0f1fed64fc4d008575e40e7eb3e393" [label=Predictions height=1.9 image="./icons/predictions.png" shape=none]
+	"8ce8ca808de148eab8a53c82ead06594" -> e2f26cf1d28941efa84ce63fe9890041 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"8ce8ca808de148eab8a53c82ead06594" -> cc9270152d7943d9b46bd4fbed61d261 [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+	"8ce8ca808de148eab8a53c82ead06594" -> "379c52daba3741f7aebdb5fbee1344d2" [dir=forward fontcolor="#2D3436" fontname="Sans-Serif" fontsize=13]
+}
