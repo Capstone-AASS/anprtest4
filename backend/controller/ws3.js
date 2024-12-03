@@ -1,8 +1,39 @@
-// ws3.js
-const WebSocket = require('ws');
-const { createWebRtcTransport } = require('./createWebRtcTransport'); // Ensure correct path
-const config = require('../config'); // Ensure correct path
+// controller/ws4.js
 
+const WebSocket = require('ws');
+const { spawn } = require('child_process');
+const config = require('../config');
+const mediasoup = require('mediasoup');
+const { v4: uuidv4 } = require('uuid');
+const stream = require('stream');
+
+const pythonProcesses = {};
+const pythonSockets = {};
+const pipeTransports = {};
+const producers = {};
+
+let mediaSoupRouter;
+let mediaSoupWorker;
+
+// Initialize Mediasoup Worker and Router
+const initializeMediasoup = async () => {
+    mediaSoupWorker = await mediasoup.createWorker({
+        rtcMinPort: config.mediasoup.worker.rtcMinPort,
+        rtcMaxPort: config.mediasoup.worker.rtcMaxPort,
+    });
+
+    console.log(`Mediasoup Worker created with PID: ${mediaSoupWorker.pid}`);
+
+    mediaSoupWorker.on('died', () => {
+        console.error('Mediasoup Worker died');
+        process.exit(1);
+    });
+
+    mediaSoupRouter = await mediaSoupWorker.createRouter({ mediaCodecs: config.mediasoup.router.mediaCodecs });
+    console.log(`Mediasoup Router created: ${mediaSoupRouter.id}`);
+};
+
+// Utility function to check if a string is valid JSON
 const isJsonString = (str) => {
     try {
         JSON.parse(str);
@@ -12,189 +43,225 @@ const isJsonString = (str) => {
     return true;
 };
 
-// Function to send responses to a WebSocket client
+// Function to send responses to the client
 const sendResponse = (ws, type, data) => {
+    console.log(`Sending response of type: ${type}`, data);
     ws.send(JSON.stringify({
         type,
         data,
     }));
 };
 
-const WebSocketConnection = (wss, worker, router) => {
-    wss.on('connection', (ws, req) => {
-        const path = req.url;
-        console.log(`WebSocket client connected to path: ${path}`);
-        console.log('Client IP:', req.socket.remoteAddress);
+// Function to get port based on feedId
+const getPortByFeedId = (feedId) => {
+    const feedNumber = parseInt(feedId.replace('feed', ''), 10);
+    return 3000 + feedNumber; // feed1 -> 3001, feed2 -> 3002, etc.
+};
 
-        if (path === '/ws') {
+// Function to handle incoming video frames from Python
+const handlePythonFrames = async (frameData, feedId, websocketServer) => {
+    try {
+        const buffer = Buffer.from(frameData, 'base64'); // Decode the base64 frame
+        const message = {
+            type: 'videoFrame',
+            data: {
+                feedId,
+                frame: `data:image/jpeg;base64,${frameData}`, // Add `data:image/jpeg;base64` prefix
+            },
+        };
+
+        // Broadcast the frame to all connected frontend clients
+        websocketServer.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(message));
+            }
+        });
+    } catch (error) {
+        console.error(`Error handling frames for ${feedId}:`, error);
+    }
+};
+
+
+// Function to create a Pipe Transport for a specific feed
+const createPipeTransport = async (feedId) => {
+    try {
+        const transport = await mediaSoupRouter.createPipeTransport({
+            listenIp: '127.0.0.1',
+            enableSctp: false,
+            enableRtpHeaderExtensions: false,
+            enableUdp: false,
+            enableTcp: true, // Using TCP for Pipe Transport
+        });
+
+        // Store the transport
+        pipeTransports[feedId] = transport;
+
+        // Handle transport events if needed
+        transport.on('close', () => {
+            console.log(`Pipe Transport closed for ${feedId}`);
+            delete pipeTransports[feedId];
+        });
+
+        return transport;
+    } catch (error) {
+        console.error(`Error creating Pipe Transport for ${feedId}:`, error);
+        throw error;
+    }
+};
+
+// Function to create a Producer from the Pipe Transport
+const createProducerFromPipe = async (feedId) => {
+    try {
+        const transport = pipeTransports[feedId];
+        if (!transport) {
+            console.error(`No Pipe Transport found for ${feedId}`);
+            return;
+        }
+
+        const producer = await transport.produce({
+            kind: 'video',
+            rtpParameters: mediaSoupRouter.rtpCapabilities,
+        });
+
+        producers[feedId] = producer;
+
+        console.log(`Producer created for ${feedId}: ${producer.id}`);
+
+        producer.on('transportclose', () => {
+            console.log(`Producer transport closed for ${feedId}`);
+            producer.close();
+            delete producers[feedId];
+        });
+
+        producer.on('close', () => {
+            console.log(`Producer closed for ${feedId}`);
+            delete producers[feedId];
+        });
+    } catch (error) {
+        console.error(`Error creating producer for ${feedId}:`, error);
+    }
+};
+
+// Function to handle starting a feed
+const handleStartFeed = (ws, data,websocketServer) => {
+    const { feedId } = data; // Ensure feedId is like 'feed1', 'feed2', etc.
+    if (pythonProcesses[feedId]) {
+        sendResponse(ws, 'error', { message: 'Feed already running' });
+        return;
+    }
+
+    // Spawn feed.py with the given feedId
+    const pythonProcess = spawn('python', ['feed.py', feedId]);
+
+    pythonProcesses[feedId] = pythonProcess;
+
+    pythonProcess.stdout.on('data', (data) => {
+        console.log(`Feed ${feedId}: ${data}`);
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+        console.error(`Feed ${feedId} Error: ${data}`);
+    });
+
+    pythonProcess.on('close', (code) => {
+        console.log(`Feed ${feedId} exited with code ${code}`);
+        delete pythonProcesses[feedId];
+        if (pythonSockets[feedId]) {
+            pythonSockets[feedId].close();
+            delete pythonSockets[feedId];
+        }
+    });
+
+    sendResponse(ws, 'feedStarted', { feedId });
+
+    // After starting the feed, connect to its WebSocket
+    const port = getPortByFeedId(feedId);
+    const feedWebSocketUrl = `ws://127.0.0.1:${port}/${feedId}`;
+
+    const connectToFeed = () => {
+        const socket = new WebSocket(feedWebSocketUrl);
+
+        socket.on('open', () => {
+            console.log(`Connected to Python feed ${feedId} on port ${port}`);
+        });
+
+        socket.on('message', (message) => {
+            try {
+                const data = JSON.parse(message);
+                if (data.type === 'videoFrame') {
+                    handlePythonFrames(data.data.frame, feedId, websocketServer);
+                }
+            } catch (error) {
+                console.error(`Error parsing message from feed ${feedId}:`, error);
+            }
+        });
+
+        socket.on('error', (error) => {
+            console.error(`WebSocket error for feed ${feedId}:`, error);
+        });
+
+        socket.on('close', () => {
+            console.log(`WebSocket connection to feed ${feedId} closed`);
+            delete pythonSockets[feedId];
+        });
+
+        pythonSockets[feedId] = socket;
+    };
+
+    // Delay the connection slightly to ensure feed.py is up
+    setTimeout(connectToFeed, 1000);
+};
+
+// WebSocket Connection Handler
+const WebSocketConnection = async (websocketServer) => {
+    try {
+        await initializeMediasoup();
+
+        websocketServer.on('connection', async (ws) => {
+            console.log('Client connected');
+
             ws.on('message', async (message) => {
-                console.log('Message from frontend:', message);
+                console.log('Received message:', message);
                 if (!isJsonString(message)) {
-                    sendResponse(ws, 'error', 'Invalid JSON format');
+                    console.error("Invalid JSON");
                     return;
                 }
 
-                const parsed = JSON.parse(message);
-                const { type, data } = parsed;
+                const event = JSON.parse(message);
 
-                switch (type) {
-                    case 'getRouterRtpCapabilities':
-                        sendResponse(ws, 'routerRtpCapabilities', { routerRtpCapabilities: router.rtpCapabilities });
+                switch (event.type) {
+                    case "startFeed":
+                        handleStartFeed(ws, event.data,websocketServer);
                         break;
-
-                    case 'createProducerTransport':
-                        try {
-                            const transport = await createWebRtcTransport(router);
-                            const params = {
-                                id: transport.id,
-                                iceParameters: transport.iceParameters,
-                                iceCandidates: transport.iceCandidates,
-                                dtlsParameters: transport.dtlsParameters,
-                            };
-                            sendResponse(ws, 'producerTransportCreated', params);
-                        } catch (error) {
-                            console.error('Error creating producer transport:', error);
-                            sendResponse(ws, 'error', 'Failed to create producer transport');
-                        }
+                    case "getRouterRtpCapabilities":
+                        sendResponse(ws, 'routerRtpCapabilities', mediaSoupRouter.rtpCapabilities);
                         break;
-
-                    case 'createConsumerTransport':
-                        try {
-                            const transport = await createWebRtcTransport(router);
-                            const params = {
-                                id: transport.id,
-                                iceParameters: transport.iceParameters,
-                                iceCandidates: transport.iceCandidates,
-                                dtlsParameters: transport.dtlsParameters,
-                            };
-                            sendResponse(ws, 'consumerTransportCreated', params);
-                        } catch (error) {
-                            console.error('Error creating consumer transport:', error);
-                            sendResponse(ws, 'error', 'Failed to create consumer transport');
-                        }
+                    case "createConsumerTransport":
+                        // Implement createConsumerTransport logic here
                         break;
-
-                    case 'connectProducerTransport':
-                        try {
-                            const { transportId, dtlsParameters } = data;
-                            const transport = router.getTransportById(transportId);
-                            await transport.connect({ dtlsParameters });
-                            sendResponse(ws, 'producerTransportConnected', null);
-                        } catch (error) {
-                            console.error('Error connecting producer transport:', error);
-                            sendResponse(ws, 'error', 'Failed to connect producer transport');
-                        }
+                    case "connectConsumerTransport":
+                        // Implement connectConsumerTransport logic here
                         break;
-
-                    case 'connectConsumerTransport':
-                        try {
-                            const { transportId, dtlsParameters } = data;
-                            const transport = router.getTransportById(transportId);
-                            await transport.connect({ dtlsParameters });
-                            sendResponse(ws, 'consumerTransportConnected', null);
-                        } catch (error) {
-                            console.error('Error connecting consumer transport:', error);
-                            sendResponse(ws, 'error', 'Failed to connect consumer transport');
-                        }
+                    case "consume":
+                        // Implement consume logic here
                         break;
-
-                    case 'produce':
-                        try {
-                            const { transportId, kind, rtpParameters } = data;
-                            const transport = router.getTransportById(transportId);
-                            const producer = await transport.produce({ kind, rtpParameters });
-                            sendResponse(ws, 'producerCreated', { id: producer.id });
-                        } catch (error) {
-                            console.error('Error producing:', error);
-                            sendResponse(ws, 'error', 'Failed to produce');
-                        }
-                        break;
-
-                    case 'consume':
-                        try {
-                            const { consumerTransportId, producerId, rtpCapabilities } = data;
-                            if (!router.canConsume({ producerId, rtpCapabilities })) {
-                                sendResponse(ws, 'error', 'Cannot consume');
-                                return;
-                            }
-                            const consumer = await router.consume({
-                                producerId,
-                                rtpCapabilities,
-                                paused: false,
-                            });
-                            sendResponse(ws, 'consumerSubscribed', {
-                                id: consumer.id,
-                                producerId: consumer.producerId,
-                                kind: consumer.kind,
-                                rtpParameters: consumer.rtpParameters,
-                            });
-                        } catch (error) {
-                            console.error('Error consuming:', error);
-                            sendResponse(ws, 'error', 'Failed to consume');
-                        }
-                        break;
-
-                    case 'videoData':
-                        try {
-                            const { feedId, frame } = data;
-
-                            // If a producer for this feedId doesn't exist, create one
-                            if (!global.producers) global.producers = {};
-
-                            if (!global.producers[feedId]) {
-                                const transport = await createWebRtcTransport(router);
-                                const params = {
-                                    id: transport.id,
-                                    iceParameters: transport.iceParameters,
-                                    iceCandidates: transport.iceCandidates,
-                                    dtlsParameters: transport.dtlsParameters,
-                                };
-                                // Store the producer transport
-                                global.producers[feedId] = { transport, producer: null };
-                                sendResponse(ws, `producerTransportCreated_${feedId}`, params);
-                            }
-
-                            const { transport, producer } = global.producers[feedId];
-
-                            if (!producer) {
-                                // If producer hasn't been created yet, send a message to frontend to create and connect it
-                                // Alternatively, handle producer creation here if possible
-                                sendResponse(ws, 'error', 'Producer not initialized yet.');
-                                return;
-                            }
-
-                            // Decode the frame data
-                            const buffer = Buffer.from(frame, 'base64');
-                            // Here you would typically handle the frame data, e.g., save it or process it.
-                            // Mediasoup doesn't handle raw frame data directly. Instead, producers should send MediaStreamTracks.
-
-                            // This part depends on how you intend to integrate feed.py with Mediasoup.
-                            // One approach is to have feed.py act as a separate client that produces media streams.
-                            // Alternatively, you might need to process the frames and inject them into Mediasoup streams.
-
-                        } catch (error) {
-                            console.error('Error handling videoData:', error);
-                            sendResponse(ws, 'error', 'Failed to handle videoData');
-                        }
-                        break;
-
+                    // ... handle other message types ...
                     default:
-                        sendResponse(ws, 'error', 'Unknown message type');
+                        console.error('Unknown message type:', event.type);
+                        break;
                 }
             });
 
             ws.on('close', () => {
                 console.log('Client disconnected');
+                // Clean up resources if necessary
             });
+        });
 
-            ws.on('error', (error) => {
-                console.error('WebSocket error:', error);
-            });
-        } else {
-            console.error(`Invalid WebSocket path: ${path}`);
-            ws.close(1008, 'Invalid WebSocket path');
-        }
-    });
+        console.log('WebSocket server is ready');
+    } catch (error) {
+        console.error('WebSocketConnection error:', error);
+    }
 };
 
 module.exports = WebSocketConnection;
