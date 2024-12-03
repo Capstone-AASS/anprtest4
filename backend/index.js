@@ -4,7 +4,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 
-const WebSocketConnection = require('./controller/ws4');
+const WebSocketConnection = require('./controller/ws3');
 const config = require('./config');
 
 const port = 8000;
