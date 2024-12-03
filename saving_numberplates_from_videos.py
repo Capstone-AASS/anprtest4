@@ -1,6 +1,6 @@
 import cv2
 from ultralytics import YOLO
-from utils import preprocess_for_ocr, concat_number_plate
+from utils.utils import preprocess_for_ocr, concat_number_plate
 import easyocr
 import os
 import glob

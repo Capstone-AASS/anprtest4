@@ -1,7 +1,7 @@
-from ANPRPipelineWithTracking import ANPRPipelineWithTracking
+from utils.ANPRPipelineWithTracking import ANPRPipelineWithTracking
 
 import cv2
-from NumberPlatePredictor import NumberPlatePredictor
+from utils.NumberPlatePredictor import NumberPlatePredictor
 
 
 # Define the paths to the YOLO model weights

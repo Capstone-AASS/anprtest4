@@ -7,6 +7,7 @@ import websockets
 import json
 import sys
 
+
 async def send_video(websocket, path, feedId):
     if path != f"/{feedId}":
         await websocket.close()
@@ -14,6 +15,7 @@ async def send_video(websocket, path, feedId):
         return
 
     print(f"Accepted connection on path: {path} with feedId: {feedId}")
+    # camera = cv2.VideoCapture(0,cv2.CAP_DSHOW)  # Modify as needed for different feeds
     camera = cv2.VideoCapture(0)  # Modify as needed for different feeds
 
     if not camera.isOpened():
@@ -29,16 +31,13 @@ async def send_video(websocket, path, feedId):
                 break
 
             # Encode the frame to JPEG
-            _, buffer = cv2.imencode('.jpg', frame)
-            frame_data = base64.b64encode(buffer).decode('utf-8')
+            _, buffer = cv2.imencode(".jpg", frame)
+            frame_data = base64.b64encode(buffer).decode("utf-8")
 
             # Create the message with feedId and frame data
             message = {
-                'type': 'videoFrame',
-                'data': {
-                    'feedId': feedId,
-                    'frame': frame_data
-                }
+                "type": "videoFrame",
+                "data": {"feedId": feedId, "frame": frame_data},
             }
 
             await websocket.send(json.dumps(message))
@@ -51,6 +50,7 @@ async def send_video(websocket, path, feedId):
         camera.release()
         print("Camera released")
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python feed.py <feedId>", file=sys.stderr)
@@ -61,13 +61,17 @@ if __name__ == "__main__":
 
     # Map feedId to port
     try:
-        feed_number = int(feedId.replace('feed', ''))
+        feed_number = int(feedId.replace("feed", ""))
         port = 3000 + feed_number  # e.g., feed16 -> 3016
     except ValueError:
         print("Invalid feedId format. Use 'feed<number>'", file=sys.stderr)
         sys.exit(1)
 
-    start_server = websockets.serve(lambda ws, path: send_video(ws, path, feedId), "0.0.0.0", port)
+    start_server = websockets.serve(
+        lambda ws, path: send_video(ws, path, feedId), "0.0.0.0", port
+    )
     asyncio.get_event_loop().run_until_complete(start_server)
-    print(f"Python WebSocket server for {feedId} started on ws://0.0.0.0:{port}/{feedId}")
+    print(
+        f"Python WebSocket server for {feedId} started on ws://0.0.0.0:{port}/{feedId}"
+    )
     asyncio.get_event_loop().run_forever()

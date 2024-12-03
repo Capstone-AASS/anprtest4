@@ -1,8 +1,8 @@
 import cv2
 from ultralytics import YOLO
-from utils import segment_characters_2, show_results
-from utils import preprocess_for_ocr, concat_number_plate
-from NumberPlatePredictor import NumberPlatePredictor
+from utils.utils import segment_characters_2, show_results
+from utils.utils import preprocess_for_ocr, concat_number_plate
+from utils.NumberPlatePredictor import NumberPlatePredictor
 
 # from tensorflow.keras.models import load_model
 import easyocr
@@ -13,8 +13,8 @@ model = YOLO("best.pt")
 
 # Load your modelsimport cv2
 from ultralytics import YOLO
-from utils import preprocess_for_ocr, concat_number_plate
-from NumberPlatePredictor import NumberPlatePredictor
+from utils.utils import preprocess_for_ocr, concat_number_plate
+from utils.NumberPlatePredictor import NumberPlatePredictor
 import easyocr
 
 
