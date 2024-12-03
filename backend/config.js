@@ -2,7 +2,7 @@ const os = require('os');
 
 const config = {
     listenIp: '0.0.0.0',
-    listenPort: 3016,
+    listenPort: 8000,
 
     mediasoup: {
         numWorkers: Object.keys(os.cpus()).length,
