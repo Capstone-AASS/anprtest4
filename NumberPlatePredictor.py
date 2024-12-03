@@ -1,71 +1,81 @@
-import re
-from collections import Counter, deque
-
+import datetime
+import difflib  # To calculate similarity using sequence matching
 
 class NumberPlatePredictor:
-    def __init__(self, history_length=100):
+    def __init__(self, existing_plates=None):
+        # Initialize with an empty history and existing valid number plates
+        self.history = {}
+        """ 
+        key: number plate id
+        value: dict {
+            number_plate: str
+            similarity: float
+            last_time_stamp: datetime
+        }
         """
-        Initialize the NumberPlatePredictor with an optional history length.
+        self.existing_plates = existing_plates if existing_plates else []
 
-        Parameters:
-        history_length (int): Number of most recent OCR results to consider. Default is 100.
-        """
-        self.history_length = history_length
-        self.ocr_stream = deque(maxlen=history_length)
-        self.plate_counts = Counter()
+    def _calculate_similarity(self, plate1, plate2):
+        """Calculates the similarity between two number plates using sequence matching."""
+        return difflib.SequenceMatcher(None, plate1, plate2).ratio()
 
-    def normalize_plate(self, plate):
-        """
-        Normalize the number plate text by converting to uppercase,
-        removing non-alphanumeric characters, and standardizing format.
+    def add_existing_plate(self, plates:list[str]):
+        """Adds a valid plates to the list of existing plates."""
+        for plate in plates:
+            self.existing_plates.append(plate.upper())
+    
+    # todo:Imporve this function
+    def is_plate_text_valid(self,plate_text):
+        """Checks if the given plate text is valid."""
+        return plate_text.isalnum() and len(plate_text) >=7
+    
+    def get_similar_plate(self, plate_text):
+        """Returns the most similar plate from existing plates."""
+        highest_similarity = 0.0
+        most_similar_plate = None
 
-        Parameters:
-        plate (str): The raw OCR detected text of the number plate.
+        for existing_plate in self.existing_plates:
+            similarity = self._calculate_similarity(plate_text, existing_plate)
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                most_similar_plate = existing_plate
 
-        Returns:
-        str: The normalized number plate text.
-        """
-        # Convert to uppercase and remove non-alphanumeric characters
-        normalized = re.sub(r"[^A-Za-z0-9]", "", plate).upper()
-        return normalized
+        return most_similar_plate, highest_similarity
 
-    def update_stream(self, new_plate):
-        """
-        Update the OCR stream with a new detected plate.
+    def update_history(self, plate_id, plate_text) ->str:
+        """Updates the history dictionary with a new plate and its most similar existing plate."""
+        if not plate_text:
+            return "" 
+        plate_text = plate_text.upper()
+        if not self.is_plate_text_valid(plate_text):
+            return ""
 
-        Parameters:
-        new_plate (str): The new OCR detected number plate value.
-        """
-        normalized_plate = self.normalize_plate(new_plate)
-        if normalized_plate:
-            self._add_plate_to_stream(normalized_plate)
+        if plate_id in self.history and self.history[plate_id]["similarity"]>0.95:
+            return self.history[plate_id]["number_plate"]
+        
+        # Find the most similar plate from existing plates
+        most_similar_plate = None
+        highest_similarity = 0.0
 
-    def _add_plate_to_stream(self, plate):
-        """
-        Helper function to add a plate to the stream and update the counter.
+        most_similar_plate, highest_similarity = self.get_similar_plate(plate_text)
 
-        Parameters:
-        plate (str): The normalized plate to add to the stream.
-        """
-        if len(self.ocr_stream) == self.history_length:
-            # Remove the oldest plate from the counter
-            oldest_plate = self.ocr_stream.popleft()
-            self.plate_counts[oldest_plate] -= 1
-            if self.plate_counts[oldest_plate] == 0:
-                del self.plate_counts[oldest_plate]
+        if plate_id in self.history and self.history[plate_id]["similarity"] >highest_similarity:
+            return self.history[plate_id]["number_plate"]
+            
+        
+        # Update the history with the most similar plate and current timestamp
+        if most_similar_plate and highest_similarity > 0.75:
+            self.history[plate_id] = {
+                'number_plate': most_similar_plate,
+                'similarity': highest_similarity,
+                'last_time_stamp': datetime.datetime.now()
+            }
+            return most_similar_plate
+        else:
+            return plate_text
 
-        # Add the new plate to the stream
-        self.ocr_stream.append(plate)
-        self.plate_counts[plate] += 1
+    def get_history(self):
+        """Returns the history dictionary."""
+        return self.history
 
-    def get_most_likely_plate(self):
-        """
-        Get the most likely number plate from the current stream.
-
-        Returns:
-        str: The most likely number plate value.
-        """
-        if self.plate_counts:
-            most_common_plate, _ = self.plate_counts.most_common(1)[0]
-            return most_common_plate
-        return f"No valid plates detected {self.plate_counts}"
+    
