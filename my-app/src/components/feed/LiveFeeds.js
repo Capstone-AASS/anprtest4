@@ -16,7 +16,7 @@ const LiveFeeds = () => {
     {
       feedId: "feed2",
       location: "Location 2",
-      isOverspeeding: true,
+      isOverspeeding: false,
       videoSrc: null,
     },
     // Add more feeds as needed
@@ -236,6 +236,9 @@ const LiveFeeds = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 0, mb: 0 ,textAlign:'center'}}>
+      <h1>Live Feeds</h1>
+      </Container>
       <Grid2 container spacing={2}>
         {feeds.map((feed, index) => (
           <Grid2 key={index} item xs={12} md={4} sm={6}>

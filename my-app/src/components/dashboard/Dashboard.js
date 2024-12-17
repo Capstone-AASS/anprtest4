@@ -12,7 +12,7 @@ const Dashboard = () => {
         <Grid container spacing={2} alignItems="center">
           <Grid size={{xs:12,md:7}}>
             <Typography variant="h3" gutterBottom>Vehicle Surveillance System</Typography>
-            <Typography variant="subtitle1" gutterBottom>For Enhanced Safety at Thapar University</Typography>
+            <Typography variant="subtitle1" gutterBottom>For Enhanced Safety at Thapar Institute of Engineering & Technology</Typography>
             <Typography variant="body1">
               The Vehicle Surveillance System provides comprehensive monitoring and analysis of vehicular movements. 
               Here, you'll find insights into live feeds, alerts for overspeeding, registered vehicles, traffic statistics, and more.
