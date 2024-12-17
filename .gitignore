@@ -1,3 +1,12 @@
 .env
 /License-Plate-Recognition-4
 /datasets
+/capstone_data
+/character_yolo_data_report
+/number_plates_realworld
+/VIDEOS_NUMBERPLATE
+/combined_output.mp4
+/videos_cropped
+/videos
+mujhe.py
+

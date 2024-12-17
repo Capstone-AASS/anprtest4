@@ -7,26 +7,30 @@ import Footer from '../components/common/Footer';
 // import LiveFeeds from '../components/feed/Feed2';
 
 function LiveFeedsPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const toggleSidebar = () => {
-      setIsSidebarOpen(!isSidebarOpen);
-    };
-    return (
-      <div className="app">
-        <Header toggleSidebar={toggleSidebar} />
-  
-        {/* Main layout container */}
-        <Box sx={{ display: 'flex' }}>
-          {/* Sidebar */}
-          <Box display={isSidebarOpen?'block':'none'}>
-          <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} activeSection='livefeeds' />
-          </Box>
-          <LiveFeeds />
-          {/* <LiveFeeds /> */}
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+  return (
+    <div className="app">
+      <Header toggleSidebar={toggleSidebar} />
+
+      {/* Main layout container */}
+      <Box sx={{ display: "flex" }}>
+        {/* Sidebar */}
+        <Box display={isSidebarOpen ? "block" : "none"}>
+          <Sidebar
+            isSidebarOpen={isSidebarOpen}
+            toggleSidebar={toggleSidebar}
+            activeSection="livefeeds"
+          />
         </Box>
-        <Footer />
-      </div>
-    );
+        <LiveFeeds />
+        {/* <LiveFeeds /> */}
+      </Box>
+      <Footer />
+    </div>
+  );
 }
 
-export default LiveFeedsPage
+export default LiveFeedsPage;
