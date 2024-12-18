@@ -1,24 +1,36 @@
 import torch
 import cv2
 import numpy as np
+
 from deep_sort_realtime.deepsort_tracker import DeepSort
 from ultralytics import YOLO
 from torch.cuda import is_available as is_gpu_available
 
 
 class ANPRPipelineWithTracking:
-    def __init__(self, plate_model_path, char_model_path, confidence_threshold=0.55):
+    def __init__(
+        self,
+        plate_model_path,
+        char_model_path,
+        confidence_threshold=0.55,
+        self_track=True,
+    ):
         # Check if GPU is available
-        device = 'cuda' if is_gpu_available() else 'cpu'
+        device = "cuda" if is_gpu_available() else "cpu"
         print(f"Using device: {device}")  # Print the device being used
 
         # Load the YOLO models on the appropriate device (GPU or CPU)
-        self.plate_model = YOLO(plate_model_path).to(device)  # Model for detecting number plates
-        self.char_model = YOLO(char_model_path).to(device)  # Model for detecting characters
+        self.plate_model = YOLO(plate_model_path).to(
+            device
+        )  # Model for detecting number plates
+        self.char_model = YOLO(char_model_path).to(
+            device
+        )  # Model for detecting characters
         self.confidence_threshold = confidence_threshold
 
         # Initialize the DeepSORT tracker
-        self.deepsort = DeepSort()
+        if self_track:
+            self.deepsort = DeepSort()
 
     def detect_number_plate(self, image):
         """Detect the number plate using the first YOLO model."""
@@ -89,6 +101,38 @@ class ANPRPipelineWithTracking:
 
         return tracked_plates
 
+    def track_numer_plates_vehical_data(self, vehicle_data, plates):
+        """
+        Detections(xyxy=array([[     779.57,      427.78,      999.77,      587.01]], dtype=float32), mask=None, confidence=array([    0.55693], dtype=float32), class_id=array([          2], dtype=float32), tracker_id=array([1]), data={})
+        plates = [(x1, y1, x2, y2, confidence)]
+        """
+        tracked_plates_with_vehicle_id = []
+        # print(vehicle_data)
+        # print(vehicle_data[0])
+        for vehicle in vehicle_data:
+
+            # print(vehicle)
+            vehicle_id = vehicle[4]
+            vehicle_bbox = list(
+                map(int, vehicle[0])
+            )  # Assuming vehicle_data contains bounding boxes as [x1, y1, x2, y2]
+
+            for plate in plates:
+                px1, py1, px2, py2, confidence = plate
+
+                # Check if the plate is inside the vehicle bounding box
+                if (
+                    vehicle_bbox[0] <= px1 <= vehicle_bbox[2]
+                    and vehicle_bbox[1] <= py1 <= vehicle_bbox[3]
+                    and vehicle_bbox[0] <= px2 <= vehicle_bbox[2]
+                    and vehicle_bbox[1] <= py2 <= vehicle_bbox[3]
+                ):
+                    tracked_plates_with_vehicle_id.append(
+                        (vehicle_id, px1, py1, px2, py2)
+                    )
+
+        return tracked_plates_with_vehicle_id
+
     def detect_characters(self, plate_image):
         """Detect characters in the number plate using the second YOLO model."""
         results = self.char_model(plate_image, verbose=False)
@@ -96,14 +140,13 @@ class ANPRPipelineWithTracking:
 
         # Process character detection results
         for result in results:
-            # print(result)
             boxes = result.boxes.xyxy.cpu().numpy()  # Bounding boxes
             confidences = result.boxes.conf.cpu().numpy()  # Confidence scores
             class_ids = result.boxes.cls.cpu().numpy()  # Character class IDs
             names = result.names  # Character class names
 
-            # Sort by x-coordinate to maintain left-to-right order
-            sorted_indices = np.argsort(boxes[:, 0])
+            # Sort by x-coordinate first, then by y-coordinate to maintain top-to-bottom and left-to-right order
+            sorted_indices = np.lexsort((boxes[:, 1], boxes[:, 0]))
             sorted_boxes = boxes[sorted_indices]
             sorted_texts = class_ids[sorted_indices]
 

@@ -8,54 +8,41 @@ import json
 import sys
 import os
 
+import supervision
+
 # import sys
 # Add the parent directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from utils.ANPRPipelineWithTracking import ANPRPipelineWithTracking
-from utils.NumberPlatePredictor import NumberPlatePredictor
+from utils.SpeedDetectionSystem import SpeedDetectionSystem
+import supervision as sv
 
 # Define the paths to the YOLO model weights
 plate_model_path = r"../best_l.pt"
 char_model_path = r"../best_char_200.pt"
+yolo_model_path = r"../yolo11m.pt"
+api_url = "http://example.com/api/alerts"
+
 
 # video_path = r"C:\Users\samar\Desktop\capstone\anprtest4\videos\192.168.1.108_IP Camera_main_20241115162510.mp4"
 # video_path = "rtsp://admin:123456@192.168.1.14/stream"
-video_path = r"C:\Users\samar\Desktop\capstone\anprtest4\capstone_data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202084658_20241202092633_202008.mp4"
-
-# define example numberplates or fetch from DB
-number_plate_db = [
-    "HR01AR4949",
-    "PB01A4470",
-    "PB01D4802",
-    "PB11DB4699",
-    "PB11DF1112",
-    "PB11DG8713",
-    "PB11V0012",
-    "PB13AN9198",
-    "PB13AW0055",
-    "PB23U1292",
-    "PB31N1297",
-    "PB39B0002",
-    "HP02Z1086",
-    "PB11DC0012",
-    "PB91D2222",
-    "PB11DB5138",
-    "PB91N0593",
-    "PB11DD2667",
-    "T1024PB0311G",
-    "CH02AA8347",
-    "CH01AM1485",
-    "UP15CX4041",
-    "PB23U1292",
-    "PB11DC0012",
-    "PB11BB9800",
-]
-
+# video_path = r"C:\Users\samar\Desktop\capstone\anprtest4\capstone_data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202084658_20241202092633_202008.mp4"
+# video_path = r"C:\Users\samar\Desktop\capstone\anpr4.1\anprtest4\videos\192.168.1.108_IP Camera_main_20241115162510.mp4"
+video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202092633_20241202094048_280254.mp4"
+# video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\mardomujhe.mp4"
+# video_path = 0
 # Initialize the ANPR pipeline with tracking
-anpr_pipeline = ANPRPipelineWithTracking(plate_model_path, char_model_path)
-number_plate_predictor = NumberPlatePredictor(number_plate_db)
-
+# anpr_pipeline = ANPRPipelineWithTracking(plate_model_path, char_model_path)
+# number_plate_predictor = NumberPlatePredictor()
+# Create the system
+if video_path == 0:
+    mask = False
+else:
+    mask = True
+system = SpeedDetectionSystem(
+    video_path, plate_model_path, char_model_path, yolo_model_path, api_url, mask
+)
+print(mask)
 
 async def send_video(websocket, path, feedId):
     if path != f"/{feedId}":
@@ -65,7 +52,8 @@ async def send_video(websocket, path, feedId):
 
     print(f"Accepted connection on path: {path} with feedId: {feedId}")
     # camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Modify as needed for different feeds
-    # camera = cv2.VideoCapture(0)  # Modify as needed for different feeds
+    # camera = cv2.VideoCapture(0)  # Modify as needed for different feed
+
     camera = cv2.VideoCapture(video_path)  # Modify as needed for different feeds
     if not camera.isOpened():
         print("Failed to open camera", file=sys.stderr)
@@ -79,36 +67,11 @@ async def send_video(websocket, path, feedId):
                 print("Failed to read frame from camera", file=sys.stderr)
                 break
 
-            # Detect number plates and draw bounding boxes
-            plates = anpr_pipeline.detect_number_plate(frame)
-            number_plate_text = ""
-            if plates:
-                tracked_plates = anpr_pipeline.track_number_plates(frame, plates)
-
-                number_plates = anpr_pipeline.get_plate_text(frame, tracked_plates)
-                result_image = anpr_pipeline.draw_bounding_boxes(frame, plates)
-                for number_plate in number_plates:
-                    number_plate_text = number_plate_predictor.update_history(
-                        number_plate[0], number_plate[1]
-                    )
-            else:
-                # No number plates detected
-                result_image = frame
-
-            # Write numberplate data
-            if number_plate_text:
-                cv2.putText(
-                    result_image,
-                    number_plate_text,
-                    (50, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    4,
-                    (123, 69, 90),
-                    4,
-                )
+            processed_frame, vehicle_states = system.process_frame(frame)
+            frame = cv2.resize(processed_frame, (1280, 720))
 
             # Encode the frame to JPEG
-            _, buffer = cv2.imencode(".jpg", result_image)
+            _, buffer = cv2.imencode(".jpg", frame)
             frame_data = base64.b64encode(buffer).decode("utf-8")
 
             # Create the message with feedId and frame data
@@ -120,7 +83,7 @@ async def send_video(websocket, path, feedId):
             await websocket.send(json.dumps(message))
 
             # Control frame rate (~30 fps)
-            await asyncio.sleep(0.033)
+            # await asyncio.sleep(1/100)
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket connection closed", file=sys.stderr)
     finally:
