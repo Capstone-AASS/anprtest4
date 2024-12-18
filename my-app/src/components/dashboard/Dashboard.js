@@ -19,13 +19,14 @@ const Dashboard = () => {
           p: 3,
         }}
       >
-
+        <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, md: 7 }}>
             <Typography variant="h3" gutterBottom>
               Vehicle Surveillance System
             </Typography>
             <Typography variant="subtitle1" gutterBottom>
-              For Enhanced Safety at TIET
+              For Enhanced Safety at Thapar Institute of Engineering &
+              Technology
             </Typography>
             <Typography variant="body1">
               The Vehicle Surveillance System provides comprehensive monitoring

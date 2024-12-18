@@ -8,14 +8,13 @@ import json
 import sys
 import os
 
-import supervision
+import supervision as sv
 
 # import sys
 # Add the parent directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 from utils.SpeedDetectionSystem import SpeedDetectionSystem
-import supervision as sv
 
 # Define the paths to the YOLO model weights
 plate_model_path = r"../best_l.pt"
@@ -39,6 +38,10 @@ if video_path == 0:
     mask = False
 else:
     mask = True
+if video_path == 0:
+    mask = False
+else:
+    mask = True
 system = SpeedDetectionSystem(
     video_path, plate_model_path, char_model_path, yolo_model_path, api_url, mask
 )
@@ -51,24 +54,17 @@ async def send_video(websocket, path, feedId):
         return
 
     print(f"Accepted connection on path: {path} with feedId: {feedId}")
-    # camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Modify as needed for different feeds
-    # camera = cv2.VideoCapture(0)  # Modify as needed for different feed
 
-    camera = cv2.VideoCapture(video_path)  # Modify as needed for different feeds
-    if not camera.isOpened():
-        print("Failed to open camera", file=sys.stderr)
-        await websocket.close()
-        return
+    video_generator = sv.get_video_frames_generator(video_path)
+
+    async def async_video_generator(syncGen):
+        for frame in syncGen:
+            yield frame
 
     try:
-        while True:
-            ret, frame = camera.read()
-            if not ret:
-                print("Failed to read frame from camera", file=sys.stderr)
-                break
-
+        async for frame in async_video_generator(video_generator):
             processed_frame, vehicle_states = system.process_frame(frame)
-            overspeeding_data = [{"vehicle_id" : state, "number_plate": vehicle_states[state].number_plate, "speed": vehicle_states[state].speeds,"max_speed":vehicle_states[state].max_speed} for state in vehicle_states if vehicle_states[state].max_speed > 30 ]
+            overspeeding_data = [{"vehicle_id" : state, "number_plate": vehicle_states[state].number_plate,"max_speed":int(vehicle_states[state].max_speed.item())} for state in vehicle_states if vehicle_states[state].max_speed > 30 ]
             frame = cv2.resize(processed_frame, (1280, 720))
             print(overspeeding_data)
             # Encode the frame to JPEG
@@ -81,17 +77,25 @@ async def send_video(websocket, path, feedId):
                 "data": {"feedId": feedId, "frame": frame_data},
                 "overspeeding_data":overspeeding_data
             }
-
-            await websocket.send(json.dumps(message))
+            try:
+                a = json.dumps(message)
+            except:
+                a = {
+                    "type": "videoFrame",
+                    "data": {"feedId": feedId, "frame": frame_data},
+                    "overspeeding_data":[]
+                    
+                }
+                a = json.dumps(a)
+            await websocket.send(a)
 
             # Control frame rate (~30 fps)
-            # await asyncio.sleep(1/100)
+            # await asyncio.sleep(1/60)
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket connection closed", file=sys.stderr)
     finally:
-        camera.release()
-        print("Camera released")
-
+        video_generator.close()
+        print("Video generator closed")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
