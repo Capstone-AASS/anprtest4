@@ -34,6 +34,29 @@ const RegisteredVehicles = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4 ,textAlign: 'center' }}>
       <h1>Registered Vehicles</h1>
+      <Button variant="contained" onClick={() => setShowForm(!showForm)} sx={{ mt: 2,mb:2 }}>
+        {showForm ? 'Cancel' : 'Register New Vehicle'}
+      </Button>
+
+      {showForm && (
+        <form onSubmit={handleFormSubmit}>
+          <Grid2 container spacing={2} sx={{ my: 2 }}>
+            <Grid2 size={{xs:12,sm:6}}>
+              <TextField label="Vehicle Number" name="number" value={newVehicle.number} onChange={handleInputChange} required fullWidth />
+            </Grid2>
+            <Grid2 size={{xs:12,sm:6}} >
+              <TextField label="Owner" name="owner" value={newVehicle.owner} onChange={handleInputChange} required fullWidth />
+            </Grid2>
+            <Grid2 size={{xs:12,sm:6}} >
+              <TextField label="Model" name="model" value={newVehicle.model} onChange={handleInputChange} required fullWidth />
+            </Grid2>
+            <Grid2 size={{xs:12,sm:6}} >
+              <TextField label="Year" name="year" value={newVehicle.year} onChange={handleInputChange} required type="number" fullWidth />
+            </Grid2>
+          </Grid2>
+          <Button type="submit" variant="contained" color="primary">Add Vehicle</Button>
+        </form>
+      )}
       <Table>
         <TableHead>
           <TableRow>
@@ -55,29 +78,9 @@ const RegisteredVehicles = () => {
         </TableBody>
       </Table>
 
-      {showForm && (
-        <form onSubmit={handleFormSubmit}>
-          <Grid2 container spacing={2} sx={{ my: 2 }}>
-            <Grid2 size={{xs:12,sm:6}}>
-              <TextField label="Vehicle Number" name="number" value={newVehicle.number} onChange={handleInputChange} required fullWidth />
-            </Grid2>
-            <Grid2 size={{xs:12,sm:6}} >
-              <TextField label="Owner" name="owner" value={newVehicle.owner} onChange={handleInputChange} required fullWidth />
-            </Grid2>
-            <Grid2 size={{xs:12,sm:6}} >
-              <TextField label="Model" name="model" value={newVehicle.model} onChange={handleInputChange} required fullWidth />
-            </Grid2>
-            <Grid2 size={{xs:12,sm:6}} >
-              <TextField label="Year" name="year" value={newVehicle.year} onChange={handleInputChange} required type="number" fullWidth />
-            </Grid2>
-          </Grid2>
-          <Button type="submit" variant="contained" color="primary">Add Vehicle</Button>
-        </form>
-      )}
+      
 
-      <Button variant="contained" onClick={() => setShowForm(!showForm)} sx={{ mt: 2,mb:2 }}>
-        {showForm ? 'Cancel' : 'Register New Vehicle'}
-      </Button>
+      
     </Container>
   );
 };

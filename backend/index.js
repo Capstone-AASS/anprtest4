@@ -8,15 +8,18 @@ const connectToMongo = require('./db');
 const cors = require('cors');
 const vechileRouter = require('./routes/vechiles');
 const alertRouter = require('./routes/alert');
+const trafficRouter = require('./routes/traffic');
+const WebSocketConnection = require('./controller/ws3');
+const config = require('./config');
+// const mediasoupHandler = require('./controller/ws5');
 
 dotenv.config();
 connectToMongo();
-const WebSocketConnection = require('./controller/ws3');
-const config = require('./config');
 
 const port = process.env.PORT || 8000;
 const app = express();
 const server = http.createServer(app);
+// const wss = new WebSocket.Server({ server,path: '/ws' });
 
 // Middleware
 app.use(express.json());
@@ -38,8 +41,9 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/vechiles', vechileRouter.router);
 app.use('/alerts', alertRouter.router);
+app.use('/traffic', trafficRouter.router);
 
-// Initialize WebSocket Server
+// Initialize Mediasoup and handle WebSocket connections
 const wss = new WebSocket.Server({ noServer: true });
 WebSocketConnection(wss);
 

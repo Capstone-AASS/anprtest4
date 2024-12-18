@@ -5,6 +5,9 @@ import Sidebar from '../components/common/Sidebar';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 // import LiveFeeds from '../components/feed/Feed2';
+// import LiveFeed from '../components/feed/LiveFeed';
+// import Feed2 from '../components/feed/Feed2';
+// import Consumer from '../components/feed/Feed2';
 
 function LiveFeedsPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -25,8 +28,8 @@ function LiveFeedsPage() {
             activeSection="livefeeds"
           />
         </Box>
+        {/* <Feed2 feedId="feed1" location="Front Entrance" /> */}
         <LiveFeeds />
-        {/* <LiveFeeds /> */}
       </Box>
       <Footer />
     </div>

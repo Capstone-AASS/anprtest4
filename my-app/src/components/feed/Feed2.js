@@ -1,173 +1,171 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Container, Grid2 } from '@mui/material';
-import { Device } from 'mediasoup-client';
+// Feed2.js
+
+import React, { useEffect, useState, useRef } from 'react';
 import LiveFeed from './LiveFeed';
 
-const LiveFeeds = () => {
-    const [feeds, setFeeds] = useState([
-        { feedId: 'feed1', location: 'Location 1', isOverspeeding: false, videoSrc: null },
-        { feedId: 'feed2', location: 'Location 2', isOverspeeding: true, videoSrc: null },
-        // Add more feeds as needed
-    ]);
+const Feed2 = ({ feedId, location }) => {
+    const [videoSrc, setVideoSrc] = useState(null);
+    const [ws, setWs] = useState(null);
+    const pcRef = useRef(null);
 
-    const socketRef = useRef(null);
-    const deviceRef = useRef(null);
-    const consumerTransportRef = useRef(null);
-
-    // Utility function to validate JSON strings
-    const isJsonString = (str) => {
-        try {
-            JSON.parse(str);
-            return true;
-        } catch {
-            return false;
-        }
-    };
-
-    // Load Mediasoup Device with router RTP capabilities
-    const loadDevice = async (routerRtpCapabilities) => {
-        try {
-            deviceRef.current = new Device();
-            await deviceRef.current.load({ routerRtpCapabilities });
-            console.log('Device loaded with RTP capabilities:', deviceRef.current);
-        } catch (error) {
-            console.error('Failed to load device:', error);
-        }
-    };
-
-    // Start the consumer transport and handle RTP connection
-    const startConsumerTransport = async (transportData) => {
-        try {
-            consumerTransportRef.current = deviceRef.current.createRecvTransport(transportData);
-
-            consumerTransportRef.current.on('connect', async ({ dtlsParameters }, callback, errback) => {
-                const message = {
-                    type: 'connectConsumerTransport',
-                    data: { dtlsParameters },
-                };
-                socketRef.current.send(JSON.stringify(message));
-
-                socketRef.current.onmessage = (event) => {
-                    const response = JSON.parse(event.data);
-                    if (response.type === 'consumerTransportConnected') {
-                        callback();
-                    } else if (response.type === 'error') {
-                        errback(response.data.message);
-                    }
-                };
-            });
-
-            consumerTransportRef.current.on('connectionstatechange', (state) => {
-                console.log('Consumer transport state:', state);
-                if (state === 'failed') {
-                    console.error('Consumer transport failed');
-                    consumerTransportRef.current.close();
-                }
-            });
-        } catch (error) {
-            console.error('Error starting consumer transport:', error);
-        }
-    };
-
-    // Subscribe to a video feed
-    const subscribeToFeed = async (feedId) => {
-        const message = {
-            type: 'startFeed',
-            data: { feedId },
-        };
-        socketRef.current.send(JSON.stringify(message));
-
-        socketRef.current.onmessage = async (event) => {
-            const response = JSON.parse(event.data);
-            if (response.type === 'consumerCreated') {
-                const consumer = await consumerTransportRef.current.consume({
-                    id: response.data.id,
-                    producerId: response.data.producerId,
-                    kind: response.data.kind,
-                    rtpParameters: response.data.rtpParameters,
-                });
-
-                const stream = new MediaStream();
-                stream.addTrack(consumer.track);
-
-                // Update the video source for the appropriate feed
-                setFeeds((prevFeeds) =>
-                    prevFeeds.map((feed) =>
-                        feed.feedId === feedId ? { ...feed, videoSrc: stream } : feed
-                    )
-                );
-
-                consumer.on('trackended', () => {
-                    console.log('Track ended');
-                });
-
-                consumer.on('transportclose', () => {
-                    console.log('Transport closed');
-                });
-            }
-        };
-    };
-
-    // Stop the feed and reset video source
-    const stopFeed = (feedId) => {
-        const message = {
-            type: 'stopFeed',
-            data: { feedId },
-        };
-        socketRef.current.send(JSON.stringify(message));
-
-        setFeeds((prevFeeds) =>
-            prevFeeds.map((feed) =>
-                feed.feedId === feedId ? { ...feed, videoSrc: null } : feed
-            )
-        );
-    };
-
-    // Initialize WebSocket connection and handle server events
     useEffect(() => {
-        socketRef.current = new WebSocket('ws://localhost:8000/ws');
-        socketRef.current.onopen = () => {
+        const signalingUrl = 'ws://localhost:8000/ws';
+        const socket = new WebSocket(signalingUrl);
+        setWs(socket);
+
+        socket.onopen = () => {
             console.log('WebSocket connected');
-            socketRef.current.send(JSON.stringify({ type: 'getRouterRtpCapabilities' }));
+
+            // Initialize as Consumer
+            socket.send(JSON.stringify({
+                type: 'init',
+                role: 'consumer',
+                feedId: feedId,
+            }));
+
+            // Create Consumer Transport
+            socket.send(JSON.stringify({
+                type: 'createConsumerTransport',
+                feedId: feedId,
+            }));
         };
 
-        socketRef.current.onmessage = (message) => {
-            if (!isJsonString(message.data)) return;
-            const response = JSON.parse(message.data);
+        socket.onmessage = async (message) => {
+            const data = JSON.parse(message.data);
+            console.log('Received message:', data);
 
-            switch (response.type) {
-                case 'routerRtpCapabilities':
-                    loadDevice(response.data);
+            switch (data.type) {
+                case 'initSuccess':
+                    console.log("Consumer initialized successfully.");
                     break;
+
                 case 'consumerTransportCreated':
-                    startConsumerTransport(response.data);
+                    await connectConsumerTransport(data.data);
                     break;
+
+                case 'consumerTransportConnected':
+                    console.log("Consumer transport connected.");
+                    break;
+
+                case 'consumerCreated':
+                    await setupConsumer(data.data);
+                    break;
+
+                case 'error':
+                    console.error('Error from server:', data.message);
+                    break;
+
                 default:
-                    console.error('Unknown WebSocket message type:', response.type);
-                    break;
+                    console.warn('Unhandled message type:', data.type);
             }
+        };
+
+        socket.onerror = (err) => {
+            console.error('WebSocket error:', err);
+        };
+
+        socket.onclose = () => {
+            console.log('WebSocket disconnected');
+            cleanup();
         };
 
         return () => {
-            if (socketRef.current) socketRef.current.close();
+            socket.close();
+            cleanup();
         };
-    }, []);
+    }, [feedId]);
+
+    const connectConsumerTransport = async (transportParams) => {
+        const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        });
+        pcRef.current = pc;
+
+        pc.ontrack = (event) => {
+            console.log('Received track:', event.streams);
+            setVideoSrc(event.streams[0]);
+        };
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                ws.send(JSON.stringify({
+                    type: 'consumerCandidate',
+                    candidate: event.candidate,
+                    transportId: transportParams.id,
+                    feedId: feedId,
+                }));
+            }
+        };
+
+        try {
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            ws.send(JSON.stringify({
+                type: 'connectConsumerTransport',
+                transportId: transportParams.id,
+                dtlsParameters: pc.localDescription,
+                feedId: feedId,
+            }));
+        } catch (error) {
+            console.error('Error creating or sending answer:', error);
+        }
+    };
+
+    const setupConsumer = async (consumerData) => {
+        if (!pcRef.current) {
+            console.error('PeerConnection not established');
+            return;
+        }
+
+        const { id, producerId, kind, rtpParameters } = consumerData;
+
+        ws.send(JSON.stringify({
+            type: 'consume',
+            consumerId: id,
+            producerId: producerId,
+            rtpCapabilities: {
+                codecs: [
+                    {
+                        mimeType: "video/VP8",
+                        clockRate: 90000,
+                        channels: 0,
+                        parameters: {},
+                    },
+                ],
+                headerExtensions: [
+                    {
+                        uri: "urn:ietf:params:rtp-hdrext:toffset",
+                        localId: 1,
+                        preferredId: 1,
+                        preferredEncrypt: true,
+                    },
+                ],
+                fecMechanisms: [],
+            },
+            feedId: feedId,
+        }));
+    };
+
+    const cleanup = () => {
+        if (pcRef.current) {
+            pcRef.current.close();
+            pcRef.current = null;
+        }
+        if (videoSrc) {
+            videoSrc.getTracks().forEach(track => track.stop());
+            setVideoSrc(null);
+        }
+    };
 
     return (
-        <Container>
-            <Grid2 container spacing={2}>
-                {feeds.map((feed) => (
-                    <Grid2 item xs={12} md={6} key={feed.feedId}>
-                        <LiveFeed
-                            {...feed}
-                            startFeed={() => subscribeToFeed(feed.feedId)}
-                            stopFeed={() => stopFeed(feed.feedId)}
-                        />
-                    </Grid2>
-                ))}
-            </Grid2>
-        </Container>
+        <LiveFeed
+            feedId={feedId}
+            location={location}
+            videoSrc={videoSrc}
+            isProducer={false}
+        />
     );
 };
 
-export default LiveFeeds;
+export default Feed2;
