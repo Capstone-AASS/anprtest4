@@ -10,3 +10,12 @@
 /videos
 mujhe.py
 
+*.mp4
+*.avi
+*.jpg
+*.png
+testme.ipynb
+
+/output_excel
+
+utils/__pycache__

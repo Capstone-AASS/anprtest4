@@ -9,8 +9,8 @@ plate_model_path = "best_l.pt"
 char_model_path = "best_char_200.pt"
 
 # video_path = r"C:\Users\samar\Desktop\capstone\anprtest4\videos\192.168.1.108_IP Camera_main_20241115162510.mp4"
-# video_path = "rtsp://admin:123456@192.168.1.14/stream"
-video_path = r"C:\Users\samar\Desktop\capstone\anprtest4\capstone_data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202084658_20241202092633_202008.mp4"
+video_path = "rtsp://admin:123456@192.168.1.14/stream"
+# video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\2.mp4"
 
 # define example numberplates or fetch from DB
 number_plate_db = [
@@ -39,6 +39,7 @@ number_plate_db = [
     "PB23U1292",
     "PB11DC0012",
     "PB11BB9800",
+    "PB03MF4477"
 ]
 
 # Initialize the ANPR pipeline with tracking
@@ -74,9 +75,11 @@ while True:
         result_image = frame
     result_image = cv2.resize(result_image, (1280, 720))
     if number_plate_text:
+        # print(number_plate_text)
+        # print(type(number_plate_text))
         cv2.putText(
             result_image,
-            number_plate_text,
+            number_plate_text[0],
             (200, 200),
             cv2.FONT_HERSHEY_SIMPLEX,
             4,
