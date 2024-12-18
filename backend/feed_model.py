@@ -28,8 +28,8 @@ api_url = "http://example.com/api/alerts"
 # video_path = "rtsp://admin:123456@192.168.1.14/stream"
 # video_path = r"C:\Users\samar\Desktop\capstone\anprtest4\capstone_data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202084658_20241202092633_202008.mp4"
 # video_path = r"C:\Users\samar\Desktop\capstone\anpr4.1\anprtest4\videos\192.168.1.108_IP Camera_main_20241115162510.mp4"
-video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202092633_20241202094048_280254.mp4"
-# video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\mardomujhe.mp4"
+# video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202092633_20241202094048_280254.mp4"
+video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\mardomujhe.mp4"
 # video_path = 0
 # Initialize the ANPR pipeline with tracking
 # anpr_pipeline = ANPRPipelineWithTracking(plate_model_path, char_model_path)
@@ -68,8 +68,9 @@ async def send_video(websocket, path, feedId):
                 break
 
             processed_frame, vehicle_states = system.process_frame(frame)
+            overspeeding_data = [{"vehicle_id" : state, "number_plate": vehicle_states[state].number_plate, "speed": vehicle_states[state].speeds,"max_speed":vehicle_states[state].max_speed} for state in vehicle_states if vehicle_states[state].max_speed > 30 ]
             frame = cv2.resize(processed_frame, (1280, 720))
-
+            print(overspeeding_data)
             # Encode the frame to JPEG
             _, buffer = cv2.imencode(".jpg", frame)
             frame_data = base64.b64encode(buffer).decode("utf-8")
@@ -78,6 +79,7 @@ async def send_video(websocket, path, feedId):
             message = {
                 "type": "videoFrame",
                 "data": {"feedId": feedId, "frame": frame_data},
+                "overspeeding_data":overspeeding_data
             }
 
             await websocket.send(json.dumps(message))
