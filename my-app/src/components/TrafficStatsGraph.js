@@ -1,51 +1,59 @@
-import React, { useEffect, useRef } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale, Title } from 'chart.js';
-import './TrafficStatsGraph.css'; // Create a CSS file for styling
-
-// Register the required elements with Chart.js
-ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title);
+import React, { useRef, useEffect } from 'react';
+import { Line, Pie } from 'react-chartjs-2';
+import 'chart.js/auto';
+import './TrafficStatsGraph.css';
 
 const TrafficStatsGraph = () => {
   const chartRef = useRef(null);
 
   const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
     datasets: [
       {
-        label: 'Traffic Volume',
-        data: [300, 500, 400, 600, 700, 800, 900],
-        borderColor: '#3498db',
-        backgroundColor: 'rgba(52, 152, 219, 0.2)',
-        fill: true,
-        tension: 0.1
-      }
-    ]
+        label: 'Traffic Stats',
+        data: [65, 59, 80, 81, 56, 55, 40], // Example data
+        fill: false,
+        backgroundColor: 'rgba(75,192,192,0.2)',
+        borderColor: 'rgba(75,192,192,1)',
+      },
+    ],
   };
 
   const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Traffic Volume Over Time'
-      }
-    },
     scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Month'
-        }
-      },
       y: {
-        title: {
-          display: true,
-          text: 'Volume'
-        }
-      }
-    }
+        beginAtZero: true,
+      },
+    },
+  };
+
+  const pieData = {
+    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    datasets: [
+      {
+        label: 'Overspeeding Incidents',
+        data: [12, 19, 3, 5, 2, 3, 7], // Example data
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.2)',
+          'rgba(54, 162, 235, 0.2)',
+          'rgba(255, 206, 86, 0.2)',
+          'rgba(75, 192, 192, 0.2)',
+          'rgba(153, 102, 255, 0.2)',
+          'rgba(255, 159, 64, 0.2)',
+          'rgba(199, 199, 199, 0.2)',
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 159, 64, 1)',
+          'rgba(199, 199, 199, 1)',
+        ],
+        borderWidth: 1,
+      },
+    ],
   };
 
   useEffect(() => {
@@ -60,7 +68,12 @@ const TrafficStatsGraph = () => {
 
   return (
     <div className="traffic-stats-graph-container">
-      <Line ref={chartRef} data={data} options={options} />
+      <div className="line-chart-container">
+        <Line ref={chartRef} data={data} options={options} />
+      </div>
+      <div className="pie-chart-container">
+        <Pie data={pieData} options={{ maintainAspectRatio: false }} />
+      </div>
     </div>
   );
 };

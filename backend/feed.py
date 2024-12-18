@@ -16,7 +16,8 @@ async def send_video(websocket, path, feedId):
 
     print(f"Accepted connection on path: {path} with feedId: {feedId}")
     # camera = cv2.VideoCapture(0,cv2.CAP_DSHOW)  # Modify as needed for different feeds
-    camera = cv2.VideoCapture(0)  # Modify as needed for different feeds
+    rtsp_url = 'rtsp://admin:123456@192.168.1.14/stream'
+    camera = cv2.VideoCapture(rtsp_url)
 
     if not camera.isOpened():
         print("Failed to open camera", file=sys.stderr)
@@ -42,8 +43,8 @@ async def send_video(websocket, path, feedId):
 
             await websocket.send(json.dumps(message))
 
-            # Control frame rate (~30 fps)
-            await asyncio.sleep(0.033)
+            # Control frame rate (~60 fps)
+            await asyncio.sleep(1/60)
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket connection closed", file=sys.stderr)
     finally:

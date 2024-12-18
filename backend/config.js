@@ -1,56 +1,58 @@
-const os = require('os');
+// config.js
 
-const config = {
-    listenIp: '0.0.0.0',
-    listenPort: 8000,
-
+module.exports = {
     mediasoup: {
-        numWorkers: Object.keys(os.cpus()).length,
         worker: {
-            rtcMinPort: 10000,
-            rtcMaxPort: 10100,
-            loglevel: 'debug',
-            logtags: [
-                'info',
-                'ice',
-                'dtls',
-                'rtp',
-                'srtp',
-                'rtcp',
+            rtcMinPort: 40000,
+            rtcMaxPort: 49999,
+            logLevel: "warn",
+            logTags: [
+                "info",
+                "ice",
+                "dtls",
+                "rtp",
+                "srtp",
+                "rtcp",
+                "rtp-hdrext",
+                "srtp",
+                "ice-lite"
             ],
         },
         router: {
             mediaCodecs: [
                 {
-                    kind: 'audio',
-                    mimeType: 'audio/opus',
+                    kind: "audio",
+                    mimeType: "audio/opus",
                     clockRate: 48000,
-                    channels: 2,
+                    channels: 2
                 },
                 {
-                    kind: 'video',
-                    mimeType: 'video/VP8',
+                    kind: "video",
+                    mimeType: "video/VP8",
+                    clockRate: 90000,
+                    parameters: {}
+                },
+                {
+                    kind: "video",
+                    mimeType: "video/H264",
                     clockRate: 90000,
                     parameters: {
-                        'x-google-start-bitrate': 1000,
-                    },
-                },
+                        "packetization-mode": 1,
+                        "profile-level-id": "42001f",
+                        "level-asymmetry-allowed": 1
+                    }
+                }
             ],
         },
-        // WebRTC transport settings
         webRtcTransport: {
             listenIps: [
-                {
-                    ip: '0.0.0.0',
-                    announcedIp: '127.0.0.1', // replace with public IP address if needed
-                },
+                { ip: "127.0.0.1", announcedIp: null } // Replace with your server's IP for production
             ],
-            maxIncomingBitrate: 1500000,
-            initialAvailableOutgoingBitrate: 1000000,
-        },
+            enableUdp: true,
+            enableTcp: true,
+            preferUdp: true,
+            initialAvailableOutgoingBitrate: 1000000
+        }
     },
+    // Add other configurations as needed
 };
-
-console.log('Configuration loaded:', JSON.stringify(config, null, 2));
-
-module.exports = config;

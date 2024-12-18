@@ -19,7 +19,7 @@ const Dashboard = () => {
           p: 3,
         }}
       >
-        <Grid container spacing={2} alignItems="center">
+
           <Grid size={{ xs: 12, md: 7 }}>
             <Typography variant="h3" gutterBottom>
               Vehicle Surveillance System
