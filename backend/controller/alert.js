@@ -13,8 +13,8 @@ exports.addAlert = async (req, res) => {
     const alert = new Alert({
         vehicleNumber: req.body.vehicleNumber,
         speed: req.body.speed,
-        location: req.body.location,
-        timestamp: req.body.timestamp
+        location: "Main Gate Road",
+        timestamp: new Date().toISOString(),
     });
 
     try {

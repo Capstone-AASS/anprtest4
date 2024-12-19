@@ -59,7 +59,7 @@ const getPortByFeedId = (feedId) => {
 };
 
 // Function to handle incoming video frames from Python
-const handlePythonFrames = async (frameData, feedId, websocketServer) => {
+const handlePythonFrames = async (frameData, feedId,overspeeding_data, websocketServer) => {
     try {
         const buffer = Buffer.from(frameData, 'base64'); // Decode the base64 frame
         const message = {
@@ -67,6 +67,7 @@ const handlePythonFrames = async (frameData, feedId, websocketServer) => {
             data: {
                 feedId,
                 frame: `data:image/jpeg;base64,${frameData}`, // Add `data:image/jpeg;base64` prefix
+                overspeeding_data:overspeeding_data
             },
         };
 
@@ -189,7 +190,7 @@ const handleStartFeed = (ws, data,websocketServer) => {
             try {
                 const data = JSON.parse(message);
                 if (data.type === 'videoFrame') {
-                    handlePythonFrames(data.data.frame, feedId, websocketServer);
+                    handlePythonFrames(data.data.frame, feedId,data.data.overspeeding_data, websocketServer);
                 }
             } catch (error) {
                 console.error(`Error parsing message from feed ${feedId}:`, error);

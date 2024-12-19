@@ -21,6 +21,7 @@ const LiveFeeds = () => {
     },
     // Add more feeds as needed
   ]);
+  const notifiedVehicles = new Set();
   const socketRef = useRef(null);
   const deviceRef = useRef(null);
   const consumerTransportRef = useRef(null);
@@ -168,6 +169,56 @@ const LiveFeeds = () => {
       };
       socketRef.current.send(JSON.stringify(msg));
     };
+  
+    const handleOverspeeding = async (vehicle) => {
+      const isOverspeeding = false;
+      if (vehicle.max_speed > 40 && vehicle.number_plate!=='None' && !notifiedVehicles.has(vehicle.vehicle_id)) {
+        isOverspeeding = true;
+        const { vehicle_id, number_plate, max_speed } = vehicle;
+        const data = {
+          vehicleNumber : number_plate,
+          speed : max_speed,
+        }
+
+        notifiedVehicles.add(vehicle_id);
+        // Make API call to notify backend about the overspeeding vehicle
+        try {
+          await fetch("http://localhost:8000/alerts/addAlert", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+          console.log(`Notified backend about overspeeding vehicle: ${vehicle_id}`);
+        } catch (error) {
+          console.error('Error notifying backend about overspeeding vehicle:', error);
+        }
+      }
+      setFeeds((prevFeeds) =>
+        prevFeeds.map((feed) =>
+          feed.feedId === feedId ? { ...feed, isOverspeeding } : feed
+        )
+      );
+    };
+
+    const handleVideoFrame = async (resp) => {
+      const { feedId, frame, overspeeding_data } = resp.data;
+  
+      // Update the video source for the appropriate feed
+      setFeeds((prevFeeds) =>
+        prevFeeds.map((feed) =>
+          feed.feedId === feedId ? { ...feed, videoSrc: frame } : feed
+        )
+      );
+  
+      // Check for overspeeding vehicles
+      if (overspeeding_data && overspeeding_data.length > 0) {
+        for (const vehicle of overspeeding_data) {
+          await handleOverspeeding(vehicle);
+        }
+      }
+    };
 
     socketRef.current.onmessage = (message) => {
       if (!isJsonString(message.data)) {
@@ -193,16 +244,7 @@ const LiveFeeds = () => {
           console.log(`Feed started: ${resp.data.feedId}`);
           break;
         case "videoFrame":
-          const { feedId, frame } = resp.data;
-
-          // Update the video source for the appropriate feed
-          setFeeds((prevFeeds) =>
-            prevFeeds.map((feed) =>
-              feed.feedId === feedId
-                ? { ...feed, videoSrc: frame } // Update `videoSrc` with the frame
-                : feed
-            )
-          );
+          handleVideoFrame(resp);
           break;
         default:
           console.error("Unknown message type:", resp.type);

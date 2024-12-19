@@ -74,17 +74,15 @@ async def send_video(websocket, path, feedId):
             # Create the message with feedId and frame data
             message = {
                 "type": "videoFrame",
-                "data": {"feedId": feedId, "frame": frame_data},
-                "overspeeding_data":overspeeding_data
+                "data": {"feedId": feedId, "frame": frame_data , "overspeeding_data":overspeeding_data
+                         }
             }
             try:
                 a = json.dumps(message)
             except:
                 a = {
                     "type": "videoFrame",
-                    "data": {"feedId": feedId, "frame": frame_data},
-                    "overspeeding_data":[]
-                    
+                    "data": {"feedId": feedId, "frame": frame_data,"overspeeding_data":[]}          
                 }
                 a = json.dumps(a)
             await websocket.send(a)
