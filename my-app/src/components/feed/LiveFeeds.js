@@ -172,7 +172,7 @@ const LiveFeeds = () => {
   
     const handleOverspeeding = async (feedId,vehicle) => {
       const isOverspeeding = false;
-      if (vehicle.max_speed > 40 && vehicle.number_plate!=='None' && !notifiedVehicles.has(vehicle.vehicle_id)) {
+      if (vehicle.max_speed > 30 && vehicle.number_plate!=='None' && !notifiedVehicles.has(vehicle.vehicle_id)) {
         isOverspeeding = true;
         const { vehicle_id, number_plate, max_speed } = vehicle;
         const data = {
