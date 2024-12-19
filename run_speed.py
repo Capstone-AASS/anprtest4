@@ -3,7 +3,8 @@ import cv2
 import supervision as sv
 
 # CONSTANTS
-video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202092633_20241202094048_280254.mp4"
+# video_path = r"E:\Tech\Python\Projects\Automobile Automobile Surveillance System\Capstone Data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202092633_20241202094048_280254.mp4"
+video_path = r"C:\Users\samar\Desktop\capstone\anpr4.1\anprtest4\capstone_data\Main_Gate_Entry-_New_TIET_Gates_TIET_Gates_20241202092633_20241202094048_280254.mp4"
 plate_model_path = "best_l.pt"
 char_model_path = "best_char_200.pt"
 yolo_model_path = "yolo11n.pt"
