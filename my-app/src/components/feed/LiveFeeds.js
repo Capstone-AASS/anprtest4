@@ -170,7 +170,7 @@ const LiveFeeds = () => {
       socketRef.current.send(JSON.stringify(msg));
     };
   
-    const handleOverspeeding = async (vehicle) => {
+    const handleOverspeeding = async (feedId,vehicle) => {
       const isOverspeeding = false;
       if (vehicle.max_speed > 40 && vehicle.number_plate!=='None' && !notifiedVehicles.has(vehicle.vehicle_id)) {
         isOverspeeding = true;
@@ -215,7 +215,7 @@ const LiveFeeds = () => {
       // Check for overspeeding vehicles
       if (overspeeding_data && overspeeding_data.length > 0) {
         for (const vehicle of overspeeding_data) {
-          await handleOverspeeding(vehicle);
+          await handleOverspeeding(feedId,vehicle);
         }
       }
     };
