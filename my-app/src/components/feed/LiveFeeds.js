@@ -171,7 +171,8 @@ const LiveFeeds = () => {
     };
   
     const handleOverspeeding = async (feedId,vehicle) => {
-      const isOverspeeding = false;
+      let isOverspeeding = false;
+      console.log(`Checking for overspeeding vehicle: ${vehicle.vehicle_id} and speed ${vehicle.max_speed}`);
       if (vehicle.max_speed > 30 && vehicle.number_plate!=='None' && !notifiedVehicles.has(vehicle.vehicle_id)) {
         isOverspeeding = true;
         const { vehicle_id, number_plate, max_speed } = vehicle;
@@ -211,10 +212,12 @@ const LiveFeeds = () => {
           feed.feedId === feedId ? { ...feed, videoSrc: frame } : feed
         )
       );
-  
+      console.log("hi")
+      console.log(overspeeding_data)
       // Check for overspeeding vehicles
       if (overspeeding_data && overspeeding_data.length > 0) {
         for (const vehicle of overspeeding_data) {
+          console.log(vehicle)
           await handleOverspeeding(feedId,vehicle);
         }
       }

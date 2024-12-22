@@ -66,9 +66,9 @@ async def send_video(websocket, path, feedId):
             processed_frame, vehicle_states = system.process_frame(frame)
             overspeeding_data = [
                 {
-                    "vehicle_id": state,
+                    "vehicle_id": int(state),
                     "number_plate": vehicle_states[state].number_plate,
-                    "max_speed": int(vehicle_states[state].max_speed.item()),
+                    "max_speed": int(vehicle_states[state].max_speed),
                 }
                 for state in vehicle_states
                 if vehicle_states[state].max_speed > 30
@@ -90,7 +90,11 @@ async def send_video(websocket, path, feedId):
             }
             try:
                 a = json.dumps(message)
+                # print(message["data"]["overspeeding_data"])
+                # print('c')
             except:
+                # print('p')
+                # print(message["data"]["overspeeding_data"])
                 a = {
                     "type": "videoFrame",
                     "data": {
@@ -100,6 +104,7 @@ async def send_video(websocket, path, feedId):
                     },
                 }
                 a = json.dumps(a)
+            # print(a)
             await websocket.send(a)
 
             # Control frame rate (~30 fps)
